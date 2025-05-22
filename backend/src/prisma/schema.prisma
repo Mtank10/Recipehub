@@ -1,0 +1,132 @@
+
+
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  name      String
+  email     String    @unique
+  avatar    String?
+  provider     ProviderType
+  providerId   String   @unique
+  following UserFollow[] @relation("Following")
+  followers UserFollow[] @relation("Followers")
+  likedRecipes RecipeLike[]
+  recipes   Recipe[]
+  comments  Comment[]
+  bookmarks Bookmark[]
+  ratings Rating[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+}
+
+model UserFollow {
+  id            String @id @default(uuid())
+  followerId    String
+  followingId   String
+
+  follower      User @relation("Followers", fields: [followerId], references: [id])
+  following     User @relation("Following", fields: [followingId], references: [id])
+
+  createdAt     DateTime @default(now())
+
+  @@unique([followerId, followingId]) // Ensures a user can't follow the same person twice
+}
+model Recipe {
+  id          String    @id @default(uuid())
+  title       String
+  description String
+  image       String?
+  tags        String[] // e.g., ["Vegan", "Italian"]
+  cookingTime Int // Time in minutes
+  steps       String[] // Step-by-step instructions
+  ingredients Ingredient[]
+  authorId    String
+  author      User       @relation(fields: [authorId], references: [id])
+  likes       RecipeLike[]
+  likesCount Int @default(0)
+  category    String
+  comments    Comment[]
+  bookmark    Bookmark[]
+  ratings     Rating[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Ingredient {
+  id        String  @id @default(uuid())
+  name      String
+  quantity  String  // Example: "2 cups"
+  recipeId  String
+  recipe    Recipe  @relation(fields: [recipeId], references: [id])
+}
+
+model Rating {
+  id        String   @id @default(uuid())
+  rating    Int
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  recipeId  String
+  recipe    Recipe   @relation(fields: [recipeId], references: [id])
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([recipeId])
+  @@unique([userId, recipeId]) // Prevent duplicate ratings from same user
+}
+
+
+
+model RecipeLike {
+  id       String  @id @default(uuid())
+  userId   String
+  recipeId String
+  user     User    @relation(fields: [userId], references: [id])
+  recipe   Recipe  @relation(fields: [recipeId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Comment {
+  id        String    @id @default(uuid())
+  content   String
+  userId    String
+  recipeId  String
+  user      User      @relation(fields: [userId], references: [id])
+  recipe    Recipe    @relation(fields: [recipeId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Bookmark {
+  id        String   @id @default(uuid())
+  userId    String
+  recipeId  String
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recipeId]) // Ensures a user can't bookmark the same recipe twice
+}
+
+enum ProviderType {
+  GOOGLE
+  FACEBOOK
+}
