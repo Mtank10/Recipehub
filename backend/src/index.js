@@ -34,6 +34,7 @@ app.use(
    credentials:true,            //access-control-allow-credentials:true
   })
 );
+app.options('*', cors()); // enable pre-flight across-the-board
 app.use(express.json()); // Support JSON body parsing
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
