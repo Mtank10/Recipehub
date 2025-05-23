@@ -52,7 +52,7 @@ const startServer = async () => {
 
   // ✅ Properly apply expressMiddleware
   app.get("/", (req, res) => {
-    res.send("Hello World!");
+    res.send("backend running");
   }
   );
   app.use(
