@@ -3,7 +3,7 @@ import {setContext} from "@apollo/client/link/context"
 
 const httpLink = createHttpLink({
     uri:"https://recipehub-zfyu.vercel.app/graphql",
-    credentials:"include"
+    // credentials:"include"
 })
 
 const authLink = setContext((_,{headers})=>{
