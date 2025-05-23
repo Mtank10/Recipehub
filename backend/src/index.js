@@ -30,7 +30,7 @@ const server = new ApolloServer({
 // Middleware setup
 app.use(
   cors({
-    origin: ["https://recipehub-rosy.vercel.app", "https://recipehub-zfyu.vercel.app"],
+    origin: ["https://recipehub-rosy.vercel.app"],
     credentials: true,
   })
 );
