@@ -30,11 +30,13 @@ const server = new ApolloServer({
 // Middleware setup
 app.use(
   cors({
-    origin:'https://recipehub-rosy.vercel.app', 
-   credentials:true,            //access-control-allow-credentials:true
+    origin:'*',
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-app.options('*', cors()); // enable pre-flight across-the-board
+
 app.use(express.json()); // Support JSON body parsing
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
