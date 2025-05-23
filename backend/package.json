@@ -7,6 +7,9 @@
   "start": "node src/index.js",
   "postinstall":"prisma generate"
 },
+"prisma": {
+  "schema": "src/prisma/schema.prisma"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
