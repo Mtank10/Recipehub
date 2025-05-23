@@ -51,6 +51,10 @@ const startServer = async () => {
   await server.start();
 
   // ✅ Properly apply expressMiddleware
+  app.get("/", (req, res) => {
+    res.send("Hello World!");
+  }
+  );
   app.use(
     "/graphql",
     expressMiddleware(server, {
