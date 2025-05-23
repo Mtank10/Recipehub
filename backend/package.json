@@ -7,10 +7,6 @@
   "start": "node src/index.js",
   "postinstall":"prisma generate"
 },
-
-  // "prisma": {
-  //   "seed": "node seed.js"
-  // },
   "keywords": [],
   "author": "",
   "license": "ISC",
