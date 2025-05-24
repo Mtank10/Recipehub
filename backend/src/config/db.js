@@ -1,8 +1,8 @@
-import {PrismaClient} from '@prisma/client';
+import { PrismaClient } from '@prisma/client/edge'
+import { withAccelerate } from '@prisma/extension-accelerate'
 
 const prisma = new PrismaClient({
-   log: ['query', 'info', 'warn', 'error'],
-});
+    log: ['query', 'info', 'warn', 'error'],}).$extends(withAccelerate())
 
 async function connectDB(){
     try{
