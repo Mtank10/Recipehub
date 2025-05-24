@@ -64,87 +64,93 @@ const RecipeGrid = ({ selectedCategory, searchQuery ,recipes:passedRecipes }) =>
   );
 
   return (
-    <div className="flex flex-col items-center w-full">
-      {/* Recipe Grid */}
-      <motion.div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        {!passedRecipes && loading ? (
-          // **Skeleton Loader While Fetching**
-          Array.from({ length: 9 }).map((_, index) => (
-            <div key={index} className="bg-gray-200 animate-pulse h-60 w-full rounded-lg"></div>
-          ))
-        ) : filteredRecipes.length > 0 ? (
-          filteredRecipes.map((recipe, index) => (
-            <motion.div
-              key={recipe.id}
-              className="bg-white shadow-md rounded-lg overflow-hidden cursor-pointer"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-            >
-              <Link to={`/recipe/${recipe.id}`} className="block">
-                <img
-                  src={recipe.image}
-                  alt={recipe.title}
-                  className="w-full h-40 object-cover"
-                  loading="lazy"
-                />
-                <div className="p-4">
-                  <h3 className="text-lg font-bold">{recipe.title}</h3>
-                  <p className="text-sm text-gray-600">{recipe.cookingTime} mins</p>
-                  <div className="flex items-center justify-between mt-2">
-                  <span className="text-sm text-gray-600">
-                    <FaHeart className="inline mr-1" />
-                    {recipe.likes?.length || 0}
-                  </span>
-                  {recipe.ratings.length > 0 ? (
-  <StarRating
-    rating={
-      recipe.ratings.reduce((sum, r) => sum + r.rating, 0) /
-      recipe.ratings.length
-    }
-  />
-) : (
-  <span className="text-gray-500 text-sm">No ratings yet</span>
-)}
-</div>
-                  <button className="mt-3 bg-gray-300 text-black px-4 py-2 rounded-md w-full">
-                    View Recipe
-                  </button>
-                </div>
-              </Link>
-            </motion.div>
-          ))
-        ) : (
-          <p className="text-gray-500 text-center col-span-full">No recipes found.</p>
-        )}
-      </motion.div>
+    <div className="flex flex-col items-center w-full px-4 md:px-8">
+  {/* Recipe Grid */}
+  <motion.div
+    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ duration: 0.5 }}
+  >
+    {!passedRecipes && loading ? (
+      Array.from({ length: 9 }).map((_, index) => (
+        <div
+          key={index}
+          className="bg-gray-200 animate-pulse h-60 w-full rounded-lg"
+        ></div>
+      ))
+    ) : filteredRecipes.length > 0 ? (
+      filteredRecipes.map((recipe, index) => (
+        <motion.div
+          key={recipe.id}
+          className="bg-white shadow-md rounded-lg overflow-hidden cursor-pointer"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: index * 0.1 }}
+        >
+          <Link to={`/recipe/${recipe.id}`} className="block">
+            <img
+              src={recipe.image}
+              alt={recipe.title}
+              className="w-full h-40 md:h-48 object-cover"
+              loading="lazy"
+            />
+            <div className="p-4">
+              <h3 className="text-base md:text-lg font-bold truncate">{recipe.title}</h3>
+              <p className="text-sm text-gray-600">{recipe.cookingTime} mins</p>
 
-      {/* Pagination Controls */}
-      {!passedRecipes && !loading && totalPages > 1 && (
-        <div className="mt-6 flex gap-4">
-          <button
-            onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-            disabled={page === 1}
-            className="px-4 py-2 bg-gray-300 rounded-md disabled:opacity-50"
-          >
-            Previous
-          </button>
-          <span className="text-lg font-semibold">Page {page}</span>
-          <button
-            onClick={() => setPage((prev) => Math.min(prev + 1, data.recipes.totalPages))}
-            disabled={page === data.recipes.totalPages}
-            className="px-4 py-2 bg-gray-300 rounded-md disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
-      )}
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-sm text-gray-600">
+                  <FaHeart className="inline mr-1" />
+                  {recipe.likes?.length || 0}
+                </span>
+
+                {recipe.ratings.length > 0 ? (
+                  <StarRating
+                    rating={
+                      recipe.ratings.reduce((sum, r) => sum + r.rating, 0) /
+                      recipe.ratings.length
+                    }
+                  />
+                ) : (
+                  <span className="text-gray-500 text-sm">No ratings yet</span>
+                )}
+              </div>
+
+              <button className="mt-3 bg-gray-200 hover:bg-gray-300 text-black text-sm md:text-base px-3 py-2 rounded-md w-full">
+                View Recipe
+              </button>
+            </div>
+          </Link>
+        </motion.div>
+      ))
+    ) : (
+      <p className="text-gray-500 text-center col-span-full">No recipes found.</p>
+    )}
+  </motion.div>
+
+  {/* Pagination */}
+  {!passedRecipes && !loading && totalPages > 1 && (
+    <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+      <button
+        onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+        disabled={page === 1}
+        className="px-4 py-2 bg-gray-300 rounded-md disabled:opacity-50"
+      >
+        Previous
+      </button>
+      <span className="text-lg font-semibold">Page {page}</span>
+      <button
+        onClick={() => setPage((prev) => Math.min(prev + 1, data.recipes.totalPages))}
+        disabled={page === data.recipes.totalPages}
+        className="px-4 py-2 bg-gray-300 rounded-md disabled:opacity-50"
+      >
+        Next
+      </button>
     </div>
+  )}
+</div>
+
   );
 };
 

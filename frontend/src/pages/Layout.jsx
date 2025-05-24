@@ -3,14 +3,11 @@ import { Outlet } from "react-router-dom";
 
 const Layout = () => {
   return (
-    <div className="flex flex-col ">
-      {/* Sidebar stays visible on all pages */}
+    <div className="flex flex-col md:flex-row">
       <Sidebar />
-
-      {/* Main content (changes based on routes) */}
-      <div className="ml-[250px]">
+      <main className="flex-1 mt-16 md:mt-0 md:ml-[250px] p-4">
         <Outlet />
-      </div>
+      </main>
     </div>
   );
 };
