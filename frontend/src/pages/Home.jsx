@@ -7,7 +7,7 @@ import RecipeCategoryFilter from "../components/RecipeCategoryFilter";
 import logo from "../assets/logo.png";
 
 const Home = () => {
-  const [selectedCategory, setSelectedCategory] = useState("Pasta");
+  const [selectedCategory, setSelectedCategory] = useState("Main Course");
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleCategoryChange = useCallback((category) => {

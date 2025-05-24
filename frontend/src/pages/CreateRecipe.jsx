@@ -1,17 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useQuery,useMutation, gql } from '@apollo/client';
+import { useQuery, useMutation, gql } from '@apollo/client';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { FaPlus, FaUpload } from 'react-icons/fa';
+import { FaPlus, FaUpload, FaSpinner } from 'react-icons/fa';
 import { jwtDecode } from 'jwt-decode';
-import { v4 as uuidv4 } from 'uuid';
 import { Cloudinary } from '@cloudinary/url-gen';
 
 const cld = new Cloudinary({ 
-    cloud: { 
-      cloudName: import.meta.env.REACT_APP_CLOUDINARY_CLOUD_NAME 
-    } 
-  });
+  cloud: { 
+    cloudName: import.meta.env.REACT_APP_CLOUDINARY_CLOUD_NAME 
+  } 
+});
 
 const CREATE_RECIPE = gql`
   mutation CreateRecipe(
@@ -55,13 +54,19 @@ const GET_USER_PROFILE = gql`
     }
   }
 `;
+
 const CreateRecipe = () => {
   const [userId, setUserId] = useState(null);
   const { data: userData } = useQuery(GET_USER_PROFILE, {
     variables: { id: userId },
     skip: !userId
   });
-  const [formData, setFormData] = useState({
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [success, setSuccess] = useState(false);
+  
+  const initialFormState = {
     title: '',
     description: '',
     image: '',
@@ -70,30 +75,10 @@ const CreateRecipe = () => {
     steps: [''],
     category: 'Main Course',
     ingredients: [{ name: '', quantity: '' }]
-  });
-  const [createRecipe] = useMutation(CREATE_RECIPE, {
-    update: (cache, { data: { createRecipe } }) => {
-      // Update the cache for the recipes list
-      const existingRecipes = cache.readQuery({
-        query: GET_RECIPES,
-        variables: { page: 1, limit: 9, category: null }
-      });
+  };
   
-      if (existingRecipes) {
-        cache.writeQuery({
-          query: GET_RECIPES,
-          variables: { page: 1, limit: 9, category: null },
-          data: {
-            recipes: {
-              ...existingRecipes.recipes,
-              recipes: [createRecipe, ...existingRecipes.recipes.recipes],
-              totalPages: Math.ceil((existingRecipes.recipes.recipes.length + 1) / 9)
-            }
-          }
-        });
-      }
-    }
-  });
+  const [formData, setFormData] = useState(initialFormState);
+  const [createRecipe] = useMutation(CREATE_RECIPE);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -103,8 +88,6 @@ const CreateRecipe = () => {
       setUserId(decoded.id);
     }
   }, []);
-
- // console.log(user)
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -118,9 +101,18 @@ const CreateRecipe = () => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Validate file size (max 3MB)
+    if (file.size > 3 * 1024 * 1024) {
+      setUploadError('Image size must be less than 3MB');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+    
+    setIsUploading(true);
+    setUploadError('');
     
     try {
       const response = await fetch(
@@ -132,8 +124,12 @@ const CreateRecipe = () => {
       setFormData(prev => ({ ...prev, image: data.secure_url }));
     } catch (error) {
       console.error('Upload failed:', error);
+      setUploadError('Image upload failed. Please try again.');
+    } finally {
+      setIsUploading(false);
     }
   };
+
   const addIngredient = () => {
     setFormData(prev => ({
       ...prev,
@@ -143,6 +139,8 @@ const CreateRecipe = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    
     try {
       const variables = {
         ...formData,
@@ -166,12 +164,33 @@ const CreateRecipe = () => {
         }
       });
       
-      navigate(`/recipe/${data.createRecipe.id}`);
+      setSuccess(true);
+      setFormData(initialFormState);
+      setTimeout(() => {
+        navigate(`/recipe/${data.createRecipe.id}`);
+      }, 2000);
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
-  
+
+  if (success) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center"
+      >
+        <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-8 text-center">
+          <h2 className="text-2xl font-bold text-green-600 mb-4">Recipe Created Successfully!</h2>
+          <p className="text-gray-600">You'll be redirected to your new recipe shortly.</p>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -181,10 +200,10 @@ const CreateRecipe = () => {
       <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Create New Recipe</h1>
         {userId && (
-            <p className="mt-2 text-gray-600">
-              Author: <span className="font-semibold">{userData.getUserProfile.name}</span>
-            </p>
-          )}
+          <p className="mt-2 text-gray-600">
+            Author: <span className="font-semibold">{userData?.getUserProfile?.name}</span>
+          </p>
+        )}
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Left Column */}
@@ -196,6 +215,7 @@ const CreateRecipe = () => {
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
+                  required
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                 />
               </div>
@@ -207,6 +227,7 @@ const CreateRecipe = () => {
                   value={formData.description}
                   onChange={handleInputChange}
                   rows="3"
+                  required
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                 />
               </div>
@@ -214,17 +235,28 @@ const CreateRecipe = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Image Upload</label>
                 <div className="mt-1 flex items-center">
-                  <label className="cursor-pointer bg-gray-100 rounded-md px-4 py-2 hover:bg-gray-200">
-                    <FaUpload className="inline mr-2" />
-                    Upload Image
+                  <label className="cursor-pointer bg-gray-100 rounded-md px-4 py-2 hover:bg-gray-200 flex items-center">
+                    {isUploading ? (
+                      <>
+                        <FaSpinner className="inline mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <FaUpload className="inline mr-2" />
+                        Upload Image
+                      </>
+                    )}
                     <input
                       type="file"
                       onChange={handleImageUpload}
                       className="hidden"
-                      accept="*"
+                      accept="image/*"
+                      disabled={isUploading}
                     />
                   </label>
                 </div>
+                {uploadError && <p className="mt-1 text-sm text-red-600">{uploadError}</p>}
               </div>
             </div>
 
@@ -233,15 +265,17 @@ const CreateRecipe = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Cooking Time (minutes)</label>
                 <input
-  type="number"
-  name="cookingTime"
-  value={formData.cookingTime}
-  onChange={(e) => setFormData(prev => ({
-    ...prev,
-    cookingTime: parseInt(e.target.value) || 0
-  }))}
-  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
-/>
+                  type="number"
+                  name="cookingTime"
+                  value={formData.cookingTime}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    cookingTime: parseInt(e.target.value) || 0
+                  }))}
+                  min="1"
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
+                />
               </div>
 
               <div>
@@ -280,7 +314,7 @@ const CreateRecipe = () => {
               <button
                 type="button"
                 onClick={addIngredient}
-                className="bg-black text-white px-3 py-1 rounded-md hover:bg-gray-800"
+                className="bg-black text-white px-3 py-1 rounded-md hover:bg-gray-800 flex items-center"
               >
                 <FaPlus className="inline mr-1" /> Add
               </button>
@@ -296,6 +330,7 @@ const CreateRecipe = () => {
                     newIngredients[index].name = e.target.value;
                     setFormData({ ...formData, ingredients: newIngredients });
                   }}
+                  required={index === 0}
                   className="rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                 />
                 <input
@@ -307,6 +342,7 @@ const CreateRecipe = () => {
                     newIngredients[index].quantity = e.target.value;
                     setFormData({ ...formData, ingredients: newIngredients });
                   }}
+                  required={index === 0}
                   className="rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                 />
               </div>
@@ -325,6 +361,7 @@ const CreateRecipe = () => {
                     newSteps[index] = e.target.value;
                     setFormData({ ...formData, steps: newSteps });
                   }}
+                  required={index === 0}
                   className="w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                   rows="2"
                   placeholder={`Step ${index + 1}`}
@@ -334,26 +371,36 @@ const CreateRecipe = () => {
             <button
               type="button"
               onClick={() => setFormData({ ...formData, steps: [...formData.steps, ''] })}
-              className="bg-black text-white px-3 py-1 rounded-md hover:bg-gray-800"
+              className="bg-black text-white px-3 py-1 rounded-md hover:bg-gray-800 flex items-center"
             >
               <FaPlus className="inline mr-1" /> Add Step
             </button>
           </div>
+          
           {formData.image && (
-          <div className="mt-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Image Preview</h3>
-            <img
-              src={formData.image}
-              alt="Preview"
-              className="w-48 h-48 object-cover rounded-lg"
-            />
-          </div>
-        )}
+            <div className="mt-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Image Preview</h3>
+              <img
+                src={formData.image}
+                alt="Preview"
+                className="w-48 h-48 object-cover rounded-lg"
+              />
+            </div>
+          )}
+          
           <button
             type="submit"
-            className="w-full bg-black text-white py-3 rounded-md hover:bg-gray-800 transition-colors"
+            disabled={isSubmitting}
+            className="w-full bg-black text-white py-3 rounded-md hover:bg-gray-800 transition-colors flex items-center justify-center"
           >
-            Create Recipe
+            {isSubmitting ? (
+              <>
+                <FaSpinner className="animate-spin mr-2" />
+                Creating Recipe...
+              </>
+            ) : (
+              'Create Recipe'
+            )}
           </button>
         </form>
       </div>
