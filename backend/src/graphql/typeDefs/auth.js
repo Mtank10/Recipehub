@@ -10,7 +10,7 @@ export const authTypeDefs = gql`
         providerId: String!
         followers: [User]
         following: [User]
-        likedRecipes: [Recipe]
+        likedRecipes: [RecipeLike]
         recipes: [Recipe]
         comments: [Comment]
         createdAt: String!
@@ -78,6 +78,7 @@ export const authTypeDefs = gql`
   }
   type Mutation {
     createRecipe(title: String!, description: String!, image: String, tags: [String]!, cookingTime: Int!, steps: [String]!, category: String!, ingredients: [IngredientInput]!): Recipe!
+    deleteRecipe(id: ID!): Boolean!
     likeRecipe(recipeId: ID!): RecipeLike!
     unlikeRecipe(recipeId: ID!): RecipeLike!
     followUser(targetUserId:ID!):String

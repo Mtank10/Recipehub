@@ -22,13 +22,46 @@ export const authResolvers = {
         
       return await prisma.user.findUnique({
         where: { id: context.user.id },
-        
+        include: {
+          followers: {
+            include: {
+              follower: true
+            }
+          },
+          following: {
+            include: {
+              following: true
+            }
+          },
+          recipes: true,
+          likedRecipes: true
+        }
       });
     },
     getUserProfile: async (_, { id }) => {
       return await prisma.user.findUnique({
-        where: { id }, // Correct way to pass id
-        
+        where: { id },
+        include: {
+          followers: {
+            include: {
+              follower: true
+            }
+          },
+          following: {
+            include: {
+              following: true
+            }
+          },
+          recipes: {
+            include: {
+              likes: true,
+              ratings: true
+            },
+            orderBy: {
+              createdAt: 'desc'
+            }
+          }
+        }
       });
     },
     
@@ -40,7 +73,29 @@ export const authResolvers = {
     recipe: async (_, { id }) => {
       return  await prisma.recipe.findUnique({
        where: { id },
-       include: { author: true, ingredients: true, comments: true, likes: true,bookmark:true, ratings: {include:{user:true}} ,likes: { include: { user: true } },},
+       include: { 
+         author: true, 
+         ingredients: true, 
+         comments: {
+           include: {
+             user: true
+           },
+           orderBy: {
+             createdAt: 'desc'
+           }
+         }, 
+         likes: {
+           include: {
+             user: true
+           }
+         },
+         bookmark: true, 
+         ratings: {
+           include: {
+             user: true
+           }
+         }
+       },
      })
    },
    categories: async ()=>{
@@ -64,15 +119,26 @@ export const authResolvers = {
       include: {
         author: true,
         ingredients: true,
-        comments: true,
-        likes: { include: { user: true } },
+        comments: {
+          include: {
+            user: true
+          }
+        },
+        likes: { 
+          include: { 
+            user: true 
+          } 
+        },
         ratings: {
           include: {
             user: true,
-            recipe:true
+            recipe: true
           }
         }
       },
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
   
     const total = await prisma.recipe.count({ where });
@@ -112,10 +178,18 @@ export const authResolvers = {
         recipe: {
           include: {
             author: true,
-            likes: true,
+            likes: {
+              include: {
+                user: true
+              }
+            },
+            ratings: true
           },
         },
       },
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
   },
   
@@ -151,10 +225,40 @@ export const authResolvers = {
       return prisma.recipe.create({
         data: {
           ...args,
-          author: { connect: { id: context.user.id } },  // Get ID from context
+          author: { connect: { id: context.user.id } },
           ingredients: { create: args.ingredients }
+        },
+        include: {
+          author: true,
+          ingredients: true,
+          likes: true,
+          ratings: true
         }
       });
+    },
+    deleteRecipe: async (_, { id }, context) => {
+      if (!context.user) throw new GraphQLError('Not authenticated');
+      
+      // Check if user owns the recipe
+      const recipe = await prisma.recipe.findUnique({
+        where: { id },
+        select: { authorId: true }
+      });
+      
+      if (!recipe) throw new GraphQLError('Recipe not found');
+      if (recipe.authorId !== context.user.id) throw new GraphQLError('Not authorized to delete this recipe');
+      
+      // Delete related records first
+      await prisma.ingredient.deleteMany({ where: { recipeId: id } });
+      await prisma.comment.deleteMany({ where: { recipeId: id } });
+      await prisma.recipeLike.deleteMany({ where: { recipeId: id } });
+      await prisma.rating.deleteMany({ where: { recipeId: id } });
+      await prisma.bookmark.deleteMany({ where: { recipeId: id } });
+      
+      // Delete the recipe
+      await prisma.recipe.delete({ where: { id } });
+      
+      return true;
     },
      followUser: async (_, {  targetUserId },context) => {
       if (!context.user || !targetUserId) {
@@ -168,7 +272,7 @@ export const authResolvers = {
             followerId_followingId: { followerId: context.user.id, followingId: targetUserId }
           }
         });
-        // console.log(existingFollow)
+        
         if (existingFollow) {
           throw new Error("You are already following this user.");
         }
@@ -181,7 +285,7 @@ export const authResolvers = {
           }
         });
     
-        
+        return "Successfully followed user";
       } catch (error) {
         console.error("Error in followUser:", error);
         throw new Error("Failed to follow the user.");
@@ -195,6 +299,7 @@ export const authResolvers = {
           }
         });
     
+        return "Successfully unfollowed user";
       } catch (error) {
         console.error("Error in unfollowUser:", error);
         throw new Error("Failed to unfollow the user.");
@@ -203,7 +308,16 @@ export const authResolvers = {
     addComment: async (_, { recipeId, content }, context) => {
       if (!context.user) throw new GraphQLError("Unauthorized");
 
-      const comment = await prisma.comment.create({ data: { recipeId, content, userId: context.user.id } });
+      const comment = await prisma.comment.create({ 
+        data: { 
+          recipeId, 
+          content, 
+          userId: context.user.id 
+        },
+        include: {
+          user: true
+        }
+      });
 
       pubsub.publish("COMMENT_ADDED",{commentAdded:comment})
 
@@ -212,12 +326,12 @@ export const authResolvers = {
     },
     rateRecipe: async (_, { recipeId, rating }, context) => {
       if (!context.user) throw new GraphQLError("Not authenticated");
-      // console.log(recipeId,rating)
+      
       return await prisma.rating.upsert({
         where: {
           userId_recipeId: {
             userId: context.user.id,
-            recipeId:recipeId
+            recipeId: recipeId
           }
         },
         update: { rating },
@@ -227,8 +341,8 @@ export const authResolvers = {
           recipe: { connect: { id: recipeId } }
         },
         include: {
-          user: true, // Include user in the response
-          recipe:true
+          user: true,
+          recipe: true
         }
       });
     },
@@ -246,13 +360,22 @@ export const authResolvers = {
         throw new GraphQLError("Already liked");
       }
 
-      return prisma.recipeLike.create({
+      const like = await prisma.recipeLike.create({
         data: {
           user: { connect: { id: context.user.id } },
           recipe: { connect: { id: recipeId } }
         },
-        include: { recipe: {include:{likes:true}} }
+        include: { 
+          recipe: {
+            include: {
+              likes: true
+            }
+          },
+          user: true
+        }
       });
+
+      return like;
     },
 
     unlikeRecipe: async (_, { recipeId }, context) => {
@@ -270,13 +393,21 @@ export const authResolvers = {
       }
 
       await prisma.recipeLike.delete({
-        where: { id: like.id },
-        include: { recipe: true }
+        where: { id: like.id }
       });
-      return await prisma.recipe.findUnique({
+      
+      const recipe = await prisma.recipe.findUnique({
         where: { id: recipeId },
-        include: { likes: true }
+        include: { 
+          likes: {
+            include: {
+              user: true
+            }
+          }
+        }
       });
+      
+      return { recipe };
     },
 
     bookmarkRecipe: async (_, { recipeId }, context) => {
@@ -293,7 +424,16 @@ export const authResolvers = {
           user: { connect: { id: context.user.id } },
           recipe: { connect: { id: recipeId } }
         },
-        update: {}
+        update: {},
+        include: {
+          recipe: {
+            include: {
+              author: true,
+              likes: true,
+              ratings: true
+            }
+          }
+        }
       });
     },
 
@@ -306,6 +446,9 @@ export const authResolvers = {
             userId: context.user.id,
             recipeId
           }
+        },
+        include: {
+          recipe: true
         }
       });
     },
@@ -317,4 +460,22 @@ export const authResolvers = {
   },
   
  },
+ 
+ // Add resolvers for nested fields
+ User: {
+   followers: async (parent) => {
+     const follows = await prisma.userFollow.findMany({
+       where: { followingId: parent.id },
+       include: { follower: true }
+     });
+     return follows.map(follow => follow.follower);
+   },
+   following: async (parent) => {
+     const follows = await prisma.userFollow.findMany({
+       where: { followerId: parent.id },
+       include: { following: true }
+     });
+     return follows.map(follow => follow.following);
+   }
+ }
 };

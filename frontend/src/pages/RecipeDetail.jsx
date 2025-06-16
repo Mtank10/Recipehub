@@ -4,6 +4,8 @@ import Comments from "../components/Comments";
 import { useQuery, gql, useMutation } from "@apollo/client";
 import { useParams } from "react-router-dom";
 import { StarRating } from "../components/RecipeGrid";
+import { useState, useEffect } from "react";
+import { jwtDecode } from "jwt-decode";
 
 const GET_RECIPE = gql`
   query GetRecipe($id: ID!) {
@@ -57,6 +59,12 @@ const GET_USER_PROFILE = gql`
         id
         name
       }
+      likedRecipes {
+        id
+        recipe {
+          id
+        }
+      }
     }
   }
 `;
@@ -74,8 +82,8 @@ const UNFOLLOW_USER = gql`
 `;
 
 const RATE_RECIPE = gql`
-  mutation RateRecipe($id: ID!, $rating: Int!) {
-    rateRecipe(recipeId: $id, rating: $rating) {
+  mutation RateRecipe($recipeId: ID!, $rating: Int!) {
+    rateRecipe(recipeId: $recipeId, rating: $rating) {
       id
       rating
       user {
@@ -91,12 +99,20 @@ const RATE_RECIPE = gql`
 `;
 
 const LIKE_RECIPE = gql`
-  mutation LikeRecipe($recipeId:ID!){
-    likeRecipe(recipeId:$recipeId){
+  mutation LikeRecipe($recipeId: ID!) {
+    likeRecipe(recipeId: $recipeId) {
       id
+      user {
+        id
+      }
       recipe {
         id
-        likesCount
+        likes {
+          id
+          user {
+            id
+          }
+        }
       }
     }
   }
@@ -105,10 +121,36 @@ const LIKE_RECIPE = gql`
 const UNLIKE_RECIPE = gql`
   mutation UnlikeRecipe($recipeId: ID!) {
     unlikeRecipe(recipeId: $recipeId) {
+      recipe {
+        id
+        likes {
+          id
+          user {
+            id
+          }
+        }
+      }
+    }
+  }
+`;
+
+const BOOKMARK_RECIPE = gql`
+  mutation BookmarkRecipe($recipeId: ID!) {
+    bookmarkRecipe(recipeId: $recipeId) {
       id
       recipe {
         id
-        likesCount
+      }
+    }
+  }
+`;
+
+const REMOVE_BOOKMARK = gql`
+  mutation RemoveBookmark($recipeId: ID!) {
+    removeBookmark(recipeId: $recipeId) {
+      id
+      recipe {
+        id
       }
     }
   }
@@ -116,28 +158,78 @@ const UNLIKE_RECIPE = gql`
 
 const RecipeDetail = () => {
   const { id } = useParams();
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [isBookmarked, setIsBookmarked] = useState(false);
 
-  const { loading, error, data } = useQuery(GET_RECIPE, { variables: { id } });
+  const { loading, error, data, refetch } = useQuery(GET_RECIPE, { 
+    variables: { id },
+    fetchPolicy: 'cache-and-network'
+  });
+  
   const {
     loading: userLoading,
     error: userError,
     data: userData,
-  } = useQuery(GET_USER_PROFILE);
+    refetch: refetchUser
+  } = useQuery(GET_USER_PROFILE, {
+    fetchPolicy: 'cache-and-network'
+  });
 
   const [followUser] = useMutation(FOLLOW_USER, {
-    refetchQueries: [{ query: GET_USER_PROFILE }],
+    onCompleted: () => {
+      refetchUser();
+    }
   });
 
   const [unfollowUser] = useMutation(UNFOLLOW_USER, {
-    refetchQueries: [{ query: GET_USER_PROFILE }],
+    onCompleted: () => {
+      refetchUser();
+    }
   });
   
   const [rateRecipe] = useMutation(RATE_RECIPE, {
-    refetchQueries: [{ query: GET_RECIPE, variables: { id} }],
+    onCompleted: () => {
+      refetch();
+    }
   });
   
-  const [likeRecipe] = useMutation(LIKE_RECIPE);
-  const [unlikeRecipe] = useMutation(UNLIKE_RECIPE);
+  const [likeRecipe] = useMutation(LIKE_RECIPE, {
+    onCompleted: () => {
+      refetch();
+      refetchUser();
+    }
+  });
+  
+  const [unlikeRecipe] = useMutation(UNLIKE_RECIPE, {
+    onCompleted: () => {
+      refetch();
+      refetchUser();
+    }
+  });
+
+  const [bookmarkRecipe] = useMutation(BOOKMARK_RECIPE, {
+    onCompleted: () => {
+      setIsBookmarked(true);
+    }
+  });
+
+  const [removeBookmark] = useMutation(REMOVE_BOOKMARK, {
+    onCompleted: () => {
+      setIsBookmarked(false);
+    }
+  });
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        setCurrentUserId(decoded.id);
+      } catch (error) {
+        console.error('Invalid token', error);
+      }
+    }
+  }, []);
 
   if (loading || userLoading) return (
     <div className="max-w-4xl mx-auto p-5">
@@ -153,7 +245,7 @@ const RecipeDetail = () => {
   const currentUser = userData?.getCurrentUser;
   const isAuthor = currentUser?.id === recipe.author.id;
   const isFollowing = currentUser?.following?.some((u) => u.id === recipe.author.id) ?? false;
-  const isLiked = currentUser?.likedRecipes?.some(like => like.id === id);
+  const isLiked = recipe.likes?.some(like => like.user.id === currentUserId) ?? false;
 
   const handleFollow = async () => {
     try {
@@ -168,12 +260,12 @@ const RecipeDetail = () => {
   };
 
   const userRating = recipe.ratings.find(
-    (r) => r.user.id === userData?.getCurrentUser?.id
+    (r) => r.user.id === currentUserId
   )?.rating;
 
   const handleRating = async (rating) => {
     try {
-      await rateRecipe({ variables: { id, rating } });
+      await rateRecipe({ variables: { recipeId: id, rating } });
     } catch (error) {
       console.error("Rating error:", error);
     }
@@ -184,16 +276,26 @@ const RecipeDetail = () => {
     : 0;
 
   const handleLike = async () => {
-    if (isLiked) {
-      await unlikeRecipe({
-        variables: { recipeId: id },
-        refetchQueries: [{ query: GET_RECIPE }, { query: GET_USER_PROFILE }]
-      });
-    } else {
-      await likeRecipe({
-        variables: { recipeId: id },
-        refetchQueries: [{ query: GET_RECIPE }, { query: GET_USER_PROFILE }]
-      });
+    try {
+      if (isLiked) {
+        await unlikeRecipe({ variables: { recipeId: id } });
+      } else {
+        await likeRecipe({ variables: { recipeId: id } });
+      }
+    } catch (error) {
+      console.error("Like error:", error);
+    }
+  };
+
+  const handleBookmark = async () => {
+    try {
+      if (isBookmarked) {
+        await removeBookmark({ variables: { recipeId: id } });
+      } else {
+        await bookmarkRecipe({ variables: { recipeId: id } });
+      }
+    } catch (error) {
+      console.error("Bookmark error:", error);
     }
   };
 
@@ -314,9 +416,16 @@ const RecipeDetail = () => {
               <span>{recipe.likes?.length || 0} Likes</span>
             </button>
             
-            <button className="flex items-center gap-3 px-6 py-3 rounded-full font-semibold bg-white border-2 border-blue-200 text-blue-500 hover:bg-blue-50 hover:border-blue-300 transition-all duration-300">
+            <button 
+              onClick={handleBookmark}
+              className={`flex items-center gap-3 px-6 py-3 rounded-full font-semibold transition-all duration-300 ${
+                isBookmarked
+                  ? 'bg-blue-500 text-white hover:bg-blue-600'
+                  : 'bg-white border-2 border-blue-200 text-blue-500 hover:bg-blue-50 hover:border-blue-300'
+              }`}
+            >
               <FaBookmark />
-              <span>Save Recipe</span>
+              <span>{isBookmarked ? 'Saved' : 'Save Recipe'}</span>
             </button>
           </div>
 
@@ -423,31 +532,33 @@ const RecipeDetail = () => {
           </div>
 
           {/* Rating Section */}
-          <div className="bg-white rounded-2xl p-6 card-shadow mb-8">
-            <h3 className="text-xl font-bold mb-4" style={{ color: 'var(--primary-green)' }}>
-              Rate This Recipe
-            </h3>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="flex items-center gap-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    onClick={() => handleRating(star)}
-                    className={`text-3xl transition-all duration-200 hover:scale-110 ${
-                      star <= (userRating || 0) ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-200'
-                    }`}
-                  >
-                    ★
-                  </button>
-                ))}
+          {currentUserId && (
+            <div className="bg-white rounded-2xl p-6 card-shadow mb-8">
+              <h3 className="text-xl font-bold mb-4" style={{ color: 'var(--primary-green)' }}>
+                Rate This Recipe
+              </h3>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex items-center gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => handleRating(star)}
+                      className={`text-3xl transition-all duration-200 hover:scale-110 ${
+                        star <= (userRating || 0) ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-200'
+                      }`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+                {userRating && (
+                  <span className="text-sm font-medium" style={{ color: 'var(--sage-green)' }}>
+                    You rated this {userRating} star{userRating !== 1 ? 's' : ''}
+                  </span>
+                )}
               </div>
-              {userRating && (
-                <span className="text-sm font-medium" style={{ color: 'var(--sage-green)' }}>
-                  You rated this {userRating} star{userRating !== 1 ? 's' : ''}
-                </span>
-              )}
             </div>
-          </div>
+          )}
 
           {/* Comments */}
           <div className="bg-white rounded-2xl p-6 card-shadow">
