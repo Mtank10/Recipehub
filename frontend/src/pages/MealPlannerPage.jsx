@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React,{ useState, useEffect } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
