@@ -1,11 +1,5 @@
-
-
-
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
   provider = "prisma-client-js"
@@ -17,63 +11,73 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(uuid())
-  name      String
-  email     String    @unique
-  avatar    String?
+  id           String           @id @default(uuid())
+  name         String
+  email        String           @unique
+  avatar       String?
   provider     ProviderType
-  providerId   String   @unique
-  following UserFollow[] @relation("Following")
-  followers UserFollow[] @relation("Followers")
+  providerId   String           @unique
+  following    UserFollow[]     @relation("Following")
+  followers    UserFollow[]     @relation("Followers")
   likedRecipes RecipeLike[]
-  recipes   Recipe[]
-  comments  Comment[]
-  bookmarks Bookmark[]
-  ratings Rating[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  recipes      Recipe[]
+  comments     Comment[]
+  bookmarks    Bookmark[]
+  ratings      Rating[]
+  userAnalytics UserAnalytics?
+  mealPlans    MealPlan[]
+  shoppingLists ShoppingList[]
+  contentReports ContentReport[] @relation("ReporterContentReports")
+  // moderatedReports ModeratorContentReport[] @relation("ModeratorContentReports")
+  preferences  UserPreferences?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
+  RecipeView RecipeView[]
+
+  ContentReport ContentReport[] @relation("ModeratorContentReports")
 }
 
 model UserFollow {
-  id            String @id @default(uuid())
-  followerId    String
-  followingId   String
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  follower    User     @relation("Followers", fields: [followerId], references: [id])
+  following   User     @relation("Following", fields: [followingId], references: [id])
+  createdAt   DateTime @default(now())
 
-  follower      User @relation("Followers", fields: [followerId], references: [id])
-  following     User @relation("Following", fields: [followingId], references: [id])
-
-  createdAt     DateTime @default(now())
-
-  @@unique([followerId, followingId]) // Ensures a user can't follow the same person twice
+  @@unique([followerId, followingId])
 }
+
 model Recipe {
-  id          String    @id @default(uuid())
-  title       String
-  description String
-  image       String?
-  tags        String[] // e.g., ["Vegan", "Italian"]
-  cookingTime Int // Time in minutes
-  steps       String[] // Step-by-step instructions
-  ingredients Ingredient[]
-  authorId    String
-  author      User       @relation(fields: [authorId], references: [id])
-  likes       RecipeLike[]
-  likesCount Int @default(0)
-  category    String
-  comments    Comment[]
-  bookmark    Bookmark[]
-  ratings     Rating[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id           String       @id @default(uuid())
+  title        String
+  description  String
+  image        String?
+  tags         String[]     // e.g., ["Vegan", "Italian"]
+  cookingTime  Int          // Time in minutes
+  steps        String[]     // Step-by-step instructions
+  ingredients  Ingredient[]
+  authorId     String
+  author       User         @relation(fields: [authorId], references: [id])
+  likes        RecipeLike[]
+  likesCount   Int          @default(0)
+  category     String
+  comments     Comment[]
+  bookmark     Bookmark[]
+  ratings      Rating[]
+  recipeViews  RecipeView[]
+  mealPlanItems MealPlanItem[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 }
 
 model Ingredient {
-  id        String  @id @default(uuid())
-  name      String
-  quantity  String  // Example: "2 cups"
-  recipeId  String
-  recipe    Recipe  @relation(fields: [recipeId], references: [id])
+  id       String   @id @default(uuid())
+  name     String
+  quantity String   // Example: "2 cups"
+  recipeId String
+  recipe   Recipe   @relation(fields: [recipeId], references: [id])
 }
 
 model Rating {
@@ -83,7 +87,6 @@ model Rating {
   user      User     @relation(fields: [userId], references: [id])
   recipeId  String
   recipe    Recipe   @relation(fields: [recipeId], references: [id])
- 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -92,26 +95,24 @@ model Rating {
   @@unique([userId, recipeId]) // Prevent duplicate ratings from same user
 }
 
-
-
 model RecipeLike {
-  id       String  @id @default(uuid())
+  id       String   @id @default(uuid())
   userId   String
   recipeId String
-  user     User    @relation(fields: [userId], references: [id])
-  recipe   Recipe  @relation(fields: [recipeId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+  recipe   Recipe   @relation(fields: [recipeId], references: [id])
   createdAt DateTime @default(now())
 }
 
 model Comment {
-  id        String    @id @default(uuid())
+  id        String   @id @default(uuid())
   content   String
   userId    String
   recipeId  String
-  user      User      @relation(fields: [userId], references: [id])
-  recipe    Recipe    @relation(fields: [recipeId], references: [id])
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+  recipe    Recipe   @relation(fields: [recipeId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Bookmark {
@@ -119,14 +120,169 @@ model Bookmark {
   userId    String
   recipeId  String
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, recipeId]) // Ensures a user can't bookmark the same recipe twice
+  @@unique([userId, recipeId])
 }
 
 enum ProviderType {
   GOOGLE
   FACEBOOK
+}
+
+// Analytics Models
+model UserAnalytics {
+  id                  String   @id @default(uuid())
+  user                User     @relation(fields: [userId], references: [id])
+  userId              String   @unique
+  recipesCreated      Int      @default(0)
+  recipesLiked        Int      @default(0)
+  recipesBookmarked   Int      @default(0)
+  followersCount      Int      @default(0)
+  followingCount      Int      @default(0)
+  totalRecipeViews    Int      @default(0)
+  avgRecipeRating     Float    @default(0)
+  lastActive          DateTime @default(now())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model RecipeView {
+  id         String   @id @default(uuid())
+  recipe     Recipe   @relation(fields: [recipeId], references: [id])
+  recipeId   String
+  user       User?    @relation(fields: [userId], references: [id])
+  userId     String?
+  ipAddress  String?
+  userAgent  String?
+  viewedAt   DateTime @default(now())
+}
+
+// Meal Planning Models
+model MealPlan {
+  id             String         @id @default(uuid())
+  user           User           @relation(fields: [userId], references: [id])
+  userId         String
+  name           String
+  weekStartDate  DateTime
+  isActive       Boolean        @default(true)
+  items          MealPlanItem[]
+  shoppingLists  ShoppingList[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model MealPlanItem {
+  id         String   @id @default(uuid())
+  mealPlan   MealPlan @relation(fields: [mealPlanId], references: [id])
+  mealPlanId String
+  recipe     Recipe   @relation(fields: [recipeId], references: [id])
+  recipeId   String
+  dayOfWeek  Int
+  mealType   MealType
+  servings   Int      @default(1)
+  notes      String?
+  createdAt  DateTime @default(now())
+}
+
+enum MealType {
+  breakfast
+  lunch
+  dinner
+  snack
+}
+
+// Shopping List Models
+model ShoppingList {
+  id          String             @id @default(uuid())
+  user        User               @relation(fields: [userId], references: [id])
+  userId      String
+  mealPlan    MealPlan?          @relation(fields: [mealPlanId], references: [id])
+  mealPlanId  String?
+  name        String
+  isCompleted Boolean            @default(false)
+  items       ShoppingListItem[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+}
+
+model ShoppingListItem {
+  id             String       @id @default(uuid())
+  shoppingList   ShoppingList @relation(fields: [shoppingListId], references: [id])
+  shoppingListId String
+  ingredientName String
+  quantity       String
+  unit           String?
+  category       String       @default("other")
+  isPurchased    Boolean      @default(false)
+  notes          String?
+  createdAt      DateTime     @default(now())
+}
+
+// Content Moderation Models
+model ContentReport {
+  id             String       @id @default(uuid())
+  reporter       User         @relation("ReporterContentReports", fields: [reporterId], references: [id])
+  reporterId     String
+  contentType    ContentType
+  contentId      String
+  reason         String
+  description    String?
+  status         ReportStatus @default(pending)
+  moderator      User?        @relation("ModeratorContentReports", fields: [moderatorId], references: [id])
+  moderatorId    String?
+  moderatorNotes String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+enum ContentType {
+  recipe
+  comment
+  user
+}
+
+enum ReportStatus {
+  pending
+  reviewed
+  resolved
+  dismissed
+}
+
+// Platform Analytics Model
+model PlatformAnalytics {
+  id            String   @id @default(uuid())
+  date          DateTime @unique
+  totalUsers    Int      @default(0)
+  newUsers      Int      @default(0)
+  activeUsers   Int      @default(0)
+  totalRecipes  Int      @default(0)
+  newRecipes    Int      @default(0)
+  totalViews    Int      @default(0)
+  totalLikes    Int      @default(0)
+  totalComments Int      @default(0)
+  createdAt     DateTime @default(now())
+}
+
+// User Preferences Model
+model UserPreferences {
+  id                  String   @id @default(uuid())
+  user                User     @relation(fields: [userId], references: [id])
+  userId              String   @unique
+  dietaryRestrictions String[]
+  favoriteCuisines    String[]
+  cookingSkillLevel   CookingSkillLevel @default(beginner)
+  preferredMealTypes  String[]
+  maxCookingTime      Int      @default(60)
+  notificationsEnabled Boolean  @default(true)
+  emailNotifications  Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+enum CookingSkillLevel {
+  beginner
+  intermediate
+  advanced
 }
