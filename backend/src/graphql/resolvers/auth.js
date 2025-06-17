@@ -75,7 +75,7 @@ export const authResolvers = {
       return "Protected Data";
     },
     recipe: async (_, { id }) => {
-      return  await prisma.recipe.findUnique({
+      const recipe = await prisma.recipe.findUnique({
        where: { id },
        include: { 
          author: true, 
@@ -100,7 +100,17 @@ export const authResolvers = {
            }
          }
        },
-     })
+     });
+
+     if (recipe) {
+       // Count views
+       const viewsCount = await prisma.recipeView.count({
+         where: { recipeId: id }
+       });
+       recipe.viewsCount = viewsCount;
+     }
+
+     return recipe;
    },
    categories: async ()=>{
     const categories = await prisma.recipe.findMany({
@@ -144,10 +154,20 @@ export const authResolvers = {
         createdAt: 'desc'
       }
     });
+
+    // Add view counts to recipes
+    const recipesWithViews = await Promise.all(
+      recipes.map(async (recipe) => {
+        const viewsCount = await prisma.recipeView.count({
+          where: { recipeId: recipe.id }
+        });
+        return { ...recipe, viewsCount };
+      })
+    );
   
     const total = await prisma.recipe.count({ where });
     return {
-      recipes,
+      recipes: recipesWithViews,
       totalPages: Math.ceil(total / limit),
     };
   },
@@ -226,7 +246,7 @@ export const authResolvers = {
     createRecipe: async (_, args, context) => {
       if (!context.user) throw new GraphQLError('Not authenticated');
       
-      return prisma.recipe.create({
+      const recipe = await prisma.recipe.create({
         data: {
           ...args,
           author: { connect: { id: context.user.id } },
@@ -239,6 +259,11 @@ export const authResolvers = {
           ratings: true
         }
       });
+
+      // Update user analytics
+      await updateUserAnalytics(context.user.id);
+
+      return recipe;
     },
     deleteRecipe: async (_, { id }, context) => {
       if (!context.user) throw new GraphQLError('Not authenticated');
@@ -258,9 +283,13 @@ export const authResolvers = {
       await prisma.recipeLike.deleteMany({ where: { recipeId: id } });
       await prisma.rating.deleteMany({ where: { recipeId: id } });
       await prisma.bookmark.deleteMany({ where: { recipeId: id } });
+      await prisma.recipeView.deleteMany({ where: { recipeId: id } });
       
       // Delete the recipe
       await prisma.recipe.delete({ where: { id } });
+
+      // Update user analytics
+      await updateUserAnalytics(context.user.id);
       
       return true;
     },
@@ -292,6 +321,10 @@ export const authResolvers = {
             following: true
           }
         });
+
+        // Update analytics for both users
+        await updateUserAnalytics(context.user.id);
+        await updateUserAnalytics(targetUserId);
     
         return {
           id: newFollow.id,
@@ -329,6 +362,10 @@ export const authResolvers = {
             followerId_followingId: { followerId: context.user.id, followingId: targetUserId }
           }
         });
+
+        // Update analytics for both users
+        await updateUserAnalytics(context.user.id);
+        await updateUserAnalytics(targetUserId);
     
         return {
           id: existingFollow.id,
@@ -363,7 +400,7 @@ export const authResolvers = {
     rateRecipe: async (_, { recipeId, rating }, context) => {
       if (!context.user) throw new GraphQLError("Not authenticated");
       
-      return await prisma.rating.upsert({
+      const result = await prisma.rating.upsert({
         where: {
           userId_recipeId: {
             userId: context.user.id,
@@ -381,6 +418,17 @@ export const authResolvers = {
           recipe: true
         }
       });
+
+      // Update analytics for recipe author
+      const recipe = await prisma.recipe.findUnique({
+        where: { id: recipeId },
+        select: { authorId: true }
+      });
+      if (recipe) {
+        await updateUserAnalytics(recipe.authorId);
+      }
+
+      return result;
     },
     likeRecipe: async (_, { recipeId }, context) => {
       if (!context.user) throw new GraphQLError("Unauthorized");
@@ -417,6 +465,12 @@ export const authResolvers = {
           user: true
         }
       });
+
+      // Update analytics for both users
+      await updateUserAnalytics(context.user.id);
+      if (like.recipe.author) {
+        await updateUserAnalytics(like.recipe.author.id);
+      }
 
       return like;
     },
@@ -455,6 +509,12 @@ export const authResolvers = {
           ratings: true
         }
       });
+
+      // Update analytics for both users
+      await updateUserAnalytics(context.user.id);
+      if (recipe.author) {
+        await updateUserAnalytics(recipe.author.id);
+      }
       
       return { 
         id: like.id,
@@ -466,7 +526,7 @@ export const authResolvers = {
     bookmarkRecipe: async (_, { recipeId }, context) => {
       if (!context.user) throw new GraphQLError("Unauthorized");
       
-      return prisma.bookmark.upsert({
+      const bookmark = await prisma.bookmark.upsert({
         where: {
           userId_recipeId: {
             userId: context.user.id,
@@ -488,12 +548,17 @@ export const authResolvers = {
           }
         }
       });
+
+      // Update user analytics
+      await updateUserAnalytics(context.user.id);
+
+      return bookmark;
     },
 
     removeBookmark: async (_, { recipeId }, context) => {
       if (!context.user) throw new GraphQLError("Unauthorized");
 
-      return prisma.bookmark.delete({
+      const bookmark = await prisma.bookmark.delete({
         where: {
           userId_recipeId: {
             userId: context.user.id,
@@ -510,6 +575,11 @@ export const authResolvers = {
           }
         }
       });
+
+      // Update user analytics
+      await updateUserAnalytics(context.user.id);
+
+      return bookmark;
     },
     
   },
@@ -535,6 +605,117 @@ export const authResolvers = {
        include: { following: true }
      });
      return follows.map(follow => follow.following);
+   },
+   analytics: async (parent) => {
+     return await prisma.userAnalytics.findUnique({
+       where: { userId: parent.id }
+     });
+   },
+   preferences: async (parent) => {
+     return await prisma.userPreferences.findUnique({
+       where: { userId: parent.id }
+     });
+   },
+   mealPlans: async (parent) => {
+     return await prisma.mealPlan.findMany({
+       where: { userId: parent.id },
+       include: {
+         items: {
+           include: {
+             recipe: true
+           }
+         }
+       }
+     });
+   },
+   shoppingLists: async (parent) => {
+     return await prisma.shoppingList.findMany({
+       where: { userId: parent.id },
+       include: {
+         items: true
+       }
+     });
+   }
+ },
+
+ Recipe: {
+   views: async (parent) => {
+     return await prisma.recipeView.findMany({
+       where: { recipeId: parent.id }
+     });
+   },
+   viewsCount: async (parent) => {
+     return await prisma.recipeView.count({
+       where: { recipeId: parent.id }
+     });
    }
  }
 };
+
+// Helper function to update user analytics
+async function updateUserAnalytics(userId) {
+  try {
+    const recipesCreated = await prisma.recipe.count({
+      where: { authorId: userId }
+    });
+    
+    const recipesLiked = await prisma.recipeLike.count({
+      where: { userId }
+    });
+    
+    const recipesBookmarked = await prisma.bookmark.count({
+      where: { userId }
+    });
+    
+    const followersCount = await prisma.userFollow.count({
+      where: { followingId: userId }
+    });
+    
+    const followingCount = await prisma.userFollow.count({
+      where: { followerId: userId }
+    });
+    
+    const totalRecipeViews = await prisma.recipeView.count({
+      where: {
+        recipe: { authorId: userId }
+      }
+    });
+    
+    const ratings = await prisma.rating.findMany({
+      where: {
+        recipe: { authorId: userId }
+      }
+    });
+    
+    const avgRecipeRating = ratings.length > 0
+      ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length
+      : 0;
+    
+    await prisma.userAnalytics.upsert({
+      where: { userId },
+      update: {
+        recipesCreated,
+        recipesLiked,
+        recipesBookmarked,
+        followersCount,
+        followingCount,
+        totalRecipeViews,
+        avgRecipeRating,
+        lastActive: new Date(),
+        updatedAt: new Date()
+      },
+      create: {
+        userId,
+        recipesCreated,
+        recipesLiked,
+        recipesBookmarked,
+        followersCount,
+        followingCount,
+        totalRecipeViews,
+        avgRecipeRating
+      }
+    });
+  } catch (error) {
+    console.error('Error updating user analytics:', error);
+  }
+}

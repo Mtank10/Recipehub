@@ -17,6 +17,10 @@ export const authTypeDefs = gql`
         updatedAt: String!
         bookmarks: [Recipe!]!
         ratings:[Rating]
+        analytics: UserAnalytics
+        preferences: UserPreferences
+        mealPlans: [MealPlan!]!
+        shoppingLists: [ShoppingList!]!
     }
     
     type Recipe {
@@ -37,6 +41,8 @@ export const authTypeDefs = gql`
     updatedAt:String!
     bookmarks: [Bookmark!]!
     ratings:[Rating]! 
+    views: [RecipeView!]!
+    viewsCount: Int!
   } 
   type RecipeList {
   recipes: [Recipe]!

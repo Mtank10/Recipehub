@@ -9,6 +9,8 @@ import CommunityPage from "../pages/CommunityPage";
 import RecipeGrid from "../components/RecipeGrid";
 import ProfilePage from "../pages/ProfilePage";
 import CreateRecipe from "../pages/CreateRecipe";
+import DashboardPage from "../pages/DashboardPage";
+import MealPlannerPage from "../pages/MealPlannerPage";
 
 const AppRoutes = () => {
   return (
@@ -25,6 +27,8 @@ const AppRoutes = () => {
           <Route path="courses" element={<CoursesPage />} />
           <Route path="community" element={<CommunityPage />} />
           <Route path="create-recipe" element={<CreateRecipe/>} />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="meal-planner" element={<MealPlannerPage />} />
         </Route>
       </Routes>
     </Router>

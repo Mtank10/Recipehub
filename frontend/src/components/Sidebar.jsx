@@ -1,5 +1,5 @@
 import { Suspense, useState } from "react";
-import { FaUtensils, FaHeart, FaBook, FaUsers, FaBars, FaTimes, FaPlus } from "react-icons/fa";
+import { FaUtensils, FaHeart, FaBook, FaUsers, FaBars, FaTimes, FaPlus, FaChartLine, FaCalendarAlt } from "react-icons/fa";
 import { useQuery } from "@tanstack/react-query";
 import { useApolloClient, gql } from "@apollo/client";
 import { Link } from "react-router-dom";
@@ -77,9 +77,11 @@ const Sidebar = () => {
 
   const navItems = [
     { path: "/", icon: FaUtensils, label: "Recipes", color: "var(--primary-green)" },
-    { path: "/favorites", icon: FaHeart, label: "Favorites", color: "var(--accent-orange)" },
-    { path: "/courses", icon: FaBook, label: "Courses", color: "var(--warm-yellow)" },
-    { path: "/community", icon: FaUsers, label: "Community", color: "var(--sage-green)" },
+    { path: "/dashboard", icon: FaChartLine, label: "Dashboard", color: "var(--accent-orange)" },
+    { path: "/meal-planner", icon: FaCalendarAlt, label: "Meal Planner", color: "var(--warm-yellow)" },
+    { path: "/favorites", icon: FaHeart, label: "Favorites", color: "var(--sage-green)" },
+    { path: "/courses", icon: FaBook, label: "Courses", color: "var(--primary-green)" },
+    { path: "/community", icon: FaUsers, label: "Community", color: "var(--accent-orange)" },
   ];
 
   return (
