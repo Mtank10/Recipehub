@@ -55,6 +55,12 @@ export const authTypeDefs = gql`
     quantity:String!
   }
 
+  type UserFollow {
+    id: ID!
+    follower: User!
+    following: User!
+    createdAt: String!
+  }
 
   type RecipeLike {
     id:ID!
@@ -81,8 +87,8 @@ export const authTypeDefs = gql`
     deleteRecipe(id: ID!): Boolean!
     likeRecipe(recipeId: ID!): RecipeLike!
     unlikeRecipe(recipeId: ID!): RecipeLike!
-    followUser(targetUserId:ID!):String
-    unfollowUser(targetUserId:ID!):String
+    followUser(targetUserId:ID!):UserFollow!
+    unfollowUser(targetUserId:ID!):UserFollow!
     addComment(recipeId: ID!, content: String!): Comment!
     rateRecipe(recipeId:ID!,rating:Int!):Rating!
     bookmarkRecipe(recipeId: ID!): Bookmark!

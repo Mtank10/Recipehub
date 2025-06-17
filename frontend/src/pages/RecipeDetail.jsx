@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { FaClock, FaUtensils, FaBookmark, FaHeart, FaShare, FaPrint, FaUser } from "react-icons/fa";
 import Comments from "../components/Comments";
 import { useQuery, gql, useMutation } from "@apollo/client";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { StarRating } from "../components/RecipeGrid";
 import { useState, useEffect } from "react";
 import { jwtDecode } from "jwt-decode";
@@ -71,13 +71,33 @@ const GET_USER_PROFILE = gql`
 
 const FOLLOW_USER = gql`
   mutation FollowUser($targetUserId: ID!) {
-    followUser(targetUserId: $targetUserId)
+    followUser(targetUserId: $targetUserId) {
+      id
+      follower {
+        id
+        name
+      }
+      following {
+        id
+        name
+      }
+    }
   }
 `;
 
 const UNFOLLOW_USER = gql`
   mutation UnfollowUser($targetUserId: ID!) {
-    unfollowUser(targetUserId: $targetUserId)
+    unfollowUser(targetUserId: $targetUserId) {
+      id
+      follower {
+        id
+        name
+      }
+      following {
+        id
+        name
+      }
+    }
   }
 `;
 
@@ -104,9 +124,11 @@ const LIKE_RECIPE = gql`
       id
       user {
         id
+        name
       }
       recipe {
         id
+        title
         likes {
           id
           user {
@@ -121,8 +143,14 @@ const LIKE_RECIPE = gql`
 const UNLIKE_RECIPE = gql`
   mutation UnlikeRecipe($recipeId: ID!) {
     unlikeRecipe(recipeId: $recipeId) {
+      id
+      user {
+        id
+        name
+      }
       recipe {
         id
+        title
         likes {
           id
           user {
@@ -140,6 +168,7 @@ const BOOKMARK_RECIPE = gql`
       id
       recipe {
         id
+        title
       }
     }
   }
@@ -151,6 +180,18 @@ const REMOVE_BOOKMARK = gql`
       id
       recipe {
         id
+        title
+      }
+    }
+  }
+`;
+
+const GET_BOOKMARKED_RECIPES = gql`
+  query GetBookmarkedRecipes {
+    getBookmarkedRecipes {
+      id
+      recipe {
+        id
       }
     }
   }
@@ -159,7 +200,6 @@ const REMOVE_BOOKMARK = gql`
 const RecipeDetail = () => {
   const { id } = useParams();
   const [currentUserId, setCurrentUserId] = useState(null);
-  const [isBookmarked, setIsBookmarked] = useState(false);
 
   const { loading, error, data, refetch } = useQuery(GET_RECIPE, { 
     variables: { id },
@@ -172,24 +212,42 @@ const RecipeDetail = () => {
     data: userData,
     refetch: refetchUser
   } = useQuery(GET_USER_PROFILE, {
-    fetchPolicy: 'cache-and-network'
+    fetchPolicy: 'cache-and-network',
+    skip: !currentUserId
+  });
+
+  const {
+    data: bookmarkData,
+    refetch: refetchBookmarks
+  } = useQuery(GET_BOOKMARKED_RECIPES, {
+    fetchPolicy: 'cache-and-network',
+    skip: !currentUserId
   });
 
   const [followUser] = useMutation(FOLLOW_USER, {
     onCompleted: () => {
       refetchUser();
+    },
+    onError: (error) => {
+      console.error("Follow error:", error);
     }
   });
 
   const [unfollowUser] = useMutation(UNFOLLOW_USER, {
     onCompleted: () => {
       refetchUser();
+    },
+    onError: (error) => {
+      console.error("Unfollow error:", error);
     }
   });
   
   const [rateRecipe] = useMutation(RATE_RECIPE, {
     onCompleted: () => {
       refetch();
+    },
+    onError: (error) => {
+      console.error("Rating error:", error);
     }
   });
   
@@ -197,6 +255,9 @@ const RecipeDetail = () => {
     onCompleted: () => {
       refetch();
       refetchUser();
+    },
+    onError: (error) => {
+      console.error("Like error:", error);
     }
   });
   
@@ -204,18 +265,27 @@ const RecipeDetail = () => {
     onCompleted: () => {
       refetch();
       refetchUser();
+    },
+    onError: (error) => {
+      console.error("Unlike error:", error);
     }
   });
 
   const [bookmarkRecipe] = useMutation(BOOKMARK_RECIPE, {
     onCompleted: () => {
-      setIsBookmarked(true);
+      refetchBookmarks();
+    },
+    onError: (error) => {
+      console.error("Bookmark error:", error);
     }
   });
 
   const [removeBookmark] = useMutation(REMOVE_BOOKMARK, {
     onCompleted: () => {
-      setIsBookmarked(false);
+      refetchBookmarks();
+    },
+    onError: (error) => {
+      console.error("Remove bookmark error:", error);
     }
   });
 
@@ -243,11 +313,17 @@ const RecipeDetail = () => {
 
   const recipe = data?.recipe;
   const currentUser = userData?.getCurrentUser;
-  const isAuthor = currentUser?.id === recipe.author.id;
-  const isFollowing = currentUser?.following?.some((u) => u.id === recipe.author.id) ?? false;
-  const isLiked = recipe.likes?.some(like => like.user.id === currentUserId) ?? false;
+  const isAuthor = currentUser?.id === recipe?.author?.id;
+  const isFollowing = currentUser?.following?.some((u) => u.id === recipe?.author?.id) ?? false;
+  const isLiked = recipe?.likes?.some(like => like.user.id === currentUserId) ?? false;
+  const isBookmarked = bookmarkData?.getBookmarkedRecipes?.some(bookmark => bookmark.recipe.id === id) ?? false;
 
   const handleFollow = async () => {
+    if (!currentUserId) {
+      alert('Please login to follow users');
+      return;
+    }
+
     try {
       if (isFollowing) {
         await unfollowUser({ variables: { targetUserId: recipe.author.id } });
@@ -259,11 +335,16 @@ const RecipeDetail = () => {
     }
   };
 
-  const userRating = recipe.ratings.find(
+  const userRating = recipe?.ratings?.find(
     (r) => r.user.id === currentUserId
   )?.rating;
 
   const handleRating = async (rating) => {
+    if (!currentUserId) {
+      alert('Please login to rate recipes');
+      return;
+    }
+
     try {
       await rateRecipe({ variables: { recipeId: id, rating } });
     } catch (error) {
@@ -271,11 +352,16 @@ const RecipeDetail = () => {
     }
   };
 
-  const avgRating = recipe.ratings.length
+  const avgRating = recipe?.ratings?.length
     ? recipe.ratings.reduce((sum, r) => sum + r.rating, 0) / recipe.ratings.length
     : 0;
 
   const handleLike = async () => {
+    if (!currentUserId) {
+      alert('Please login to like recipes');
+      return;
+    }
+
     try {
       if (isLiked) {
         await unlikeRecipe({ variables: { recipeId: id } });
@@ -288,6 +374,11 @@ const RecipeDetail = () => {
   };
 
   const handleBookmark = async () => {
+    if (!currentUserId) {
+      alert('Please login to bookmark recipes');
+      return;
+    }
+
     try {
       if (isBookmarked) {
         await removeBookmark({ variables: { recipeId: id } });
@@ -298,6 +389,14 @@ const RecipeDetail = () => {
       console.error("Bookmark error:", error);
     }
   };
+
+  if (!recipe) {
+    return (
+      <div className="max-w-4xl mx-auto p-5 text-center">
+        <h2 className="text-2xl font-bold text-red-600">Recipe not found</h2>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto p-5 gradient-bg min-h-screen">
@@ -380,14 +479,14 @@ const RecipeDetail = () => {
             <div className="flex items-center gap-3">
               <StarRating rating={avgRating} />
               <span className="text-sm" style={{ color: 'var(--sage-green)' }}>
-                ({recipe.ratings.length} reviews)
+                ({recipe.ratings?.length || 0} reviews)
               </span>
             </div>
           </div>
 
           {/* Tags */}
           <div className="flex flex-wrap gap-2 mb-6">
-            {recipe.tags.map((tag, index) => (
+            {recipe.tags?.map((tag, index) => (
               <span 
                 key={index} 
                 className="px-4 py-2 rounded-full text-sm font-medium"
@@ -432,21 +531,21 @@ const RecipeDetail = () => {
           {/* Author Info */}
           {!isAuthor && (
             <div className="flex items-center justify-between p-4 rounded-2xl" style={{ background: 'var(--cream)' }}>
-              <div className="flex items-center gap-4">
+              <Link to={`/profile/${recipe.author.id}`} className="flex items-center gap-4">
                 <img
                   src={recipe.author.avatar || 'https://via.placeholder.com/50'}
                   alt={recipe.author.name}
                   className="w-12 h-12 rounded-full border-3 border-green-200"
                 />
                 <div>
-                  <h3 className="font-bold" style={{ color: 'var(--dark-text)' }}>
+                  <h3 className="font-bold hover:text-green-700 transition-colors" style={{ color: 'var(--dark-text)' }}>
                     {recipe.author.name}
                   </h3>
                   <p className="text-sm" style={{ color: 'var(--sage-green)' }}>
                     Recipe Creator
                   </p>
                 </div>
-              </div>
+              </Link>
               <button
                 onClick={handleFollow}
                 className={`px-6 py-2 rounded-full font-semibold transition-all duration-300 ${
@@ -476,7 +575,7 @@ const RecipeDetail = () => {
               Ingredients
             </h2>
             <div className="space-y-3">
-              {recipe.ingredients.map((ingredient, index) => (
+              {recipe.ingredients?.map((ingredient, index) => (
                 <motion.div
                   key={index}
                   className="ingredient-item"
@@ -510,7 +609,7 @@ const RecipeDetail = () => {
               Instructions
             </h2>
             <div className="space-y-6">
-              {recipe.steps.map((step, index) => (
+              {recipe.steps?.map((step, index) => (
                 <motion.div
                   key={index}
                   className="flex gap-4"

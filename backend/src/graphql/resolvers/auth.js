@@ -34,7 +34,11 @@ export const authResolvers = {
             }
           },
           recipes: true,
-          likedRecipes: true
+          likedRecipes: {
+            include: {
+              recipe: true
+            }
+          }
         }
       });
     },
@@ -262,7 +266,7 @@ export const authResolvers = {
     },
      followUser: async (_, {  targetUserId },context) => {
       if (!context.user || !targetUserId) {
-        throw new Error("Both userId and targetUserId are required.");
+        throw new GraphQLError("Both userId and targetUserId are required.");
       }
     
       try {
@@ -274,35 +278,67 @@ export const authResolvers = {
         });
         
         if (existingFollow) {
-          throw new Error("You are already following this user.");
+          throw new GraphQLError("You are already following this user.");
         }
     
         // Create a new follow entry
-        await prisma.userFollow.create({
+        const newFollow = await prisma.userFollow.create({
           data: {
             followerId: context.user.id,
             followingId: targetUserId
+          },
+          include: {
+            follower: true,
+            following: true
           }
         });
     
-        return "Successfully followed user";
+        return {
+          id: newFollow.id,
+          follower: newFollow.follower,
+          following: newFollow.following,
+          createdAt: newFollow.createdAt.toISOString()
+        };
       } catch (error) {
         console.error("Error in followUser:", error);
-        throw new Error("Failed to follow the user.");
+        throw new GraphQLError("Failed to follow the user.");
       }
     },
      unfollowUser : async (_, {  targetUserId }, context) => {
+      if (!context.user || !targetUserId) {
+        throw new GraphQLError("Both userId and targetUserId are required.");
+      }
+
       try {
+        const existingFollow = await prisma.userFollow.findUnique({
+          where: {
+            followerId_followingId: { followerId: context.user.id, followingId: targetUserId }
+          },
+          include: {
+            follower: true,
+            following: true
+          }
+        });
+
+        if (!existingFollow) {
+          throw new GraphQLError("You are not following this user.");
+        }
+
         await prisma.userFollow.delete({
           where: {
             followerId_followingId: { followerId: context.user.id, followingId: targetUserId }
           }
         });
     
-        return "Successfully unfollowed user";
+        return {
+          id: existingFollow.id,
+          follower: existingFollow.follower,
+          following: existingFollow.following,
+          createdAt: existingFollow.createdAt.toISOString()
+        };
       } catch (error) {
         console.error("Error in unfollowUser:", error);
-        throw new Error("Failed to unfollow the user.");
+        throw new GraphQLError("Failed to unfollow the user.");
       }
     },
     addComment: async (_, { recipeId, content }, context) => {
@@ -368,7 +404,14 @@ export const authResolvers = {
         include: { 
           recipe: {
             include: {
-              likes: true
+              likes: {
+                include: {
+                  user: true
+                }
+              },
+              author: true,
+              ingredients: true,
+              ratings: true
             }
           },
           user: true
@@ -385,6 +428,9 @@ export const authResolvers = {
         where: {
           userId: context.user.id,
           recipeId
+        },
+        include: {
+          user: true
         }
       });
 
@@ -403,11 +449,18 @@ export const authResolvers = {
             include: {
               user: true
             }
-          }
+          },
+          author: true,
+          ingredients: true,
+          ratings: true
         }
       });
       
-      return { recipe };
+      return { 
+        id: like.id,
+        user: like.user,
+        recipe: recipe 
+      };
     },
 
     bookmarkRecipe: async (_, { recipeId }, context) => {
@@ -448,7 +501,13 @@ export const authResolvers = {
           }
         },
         include: {
-          recipe: true
+          recipe: {
+            include: {
+              author: true,
+              likes: true,
+              ratings: true
+            }
+          }
         }
       });
     },
