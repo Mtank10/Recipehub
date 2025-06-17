@@ -14,7 +14,7 @@ import {
   FaStar,
   FaArrowUp,
   FaArrowDown,
-  FaTrendingUp
+  // FaTrendingUp
 } from 'react-icons/fa';
 
 const GET_DASHBOARD_SUMMARY = gql`
@@ -149,7 +149,7 @@ const DashboardPage = () => {
       case 'like_received': return <FaHeart className="text-red-500" />;
       case 'comment_received': return <FaUsers className="text-blue-500" />;
       case 'follow_received': return <FaUsers className="text-purple-500" />;
-      default: return <FaTrendingUp className="text-gray-500" />;
+      default: return <FaUsers className="text-gray-500" />;
     }
   };
 
