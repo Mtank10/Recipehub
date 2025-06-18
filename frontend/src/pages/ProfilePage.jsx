@@ -205,7 +205,7 @@ const ProfilePage = () => {
                     Create Recipe
                   </Link>
                   <button className="btn-secondary">
-                    Edit Profile
+                    <AuthButton isLoggedIn={true} />
                   </button>
                 </div>
               )}
