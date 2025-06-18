@@ -407,38 +407,34 @@ export const culturalResolvers = {
   },
 
   Mutation: {
-    sendOTP: async (_, { phone }) => {
-      // In production, integrate with SMS service like Twilio
-      console.log(`Sending OTP to ${phone}`);
-      // Store OTP in cache/database with expiry
-      return true;
-    },
+   sendOTP: async (_, { phone }) => {
+    return await sendOTP(phone);
+  },
 
-    verifyOTP: async (_, { phone, otp }) => {
-      // In production, verify OTP from cache/database
-      if (otp !== "123456") {
-        throw new GraphQLError("Invalid OTP");
-      }
+  verifyOTP: async (_, { phone, otp }, { prisma }) => {
+    const isValid = verifyOTP(phone, otp);
+    if (!isValid) {
+      throw new GraphQLError('Invalid or expired OTP');
+    }
 
-      let user = await prisma.user.findFirst({ where: { phone } });
+    let user = await prisma.user.findFirst({ where: { phone } });
 
-      if (!user) {
-        // Create new user with phone
-        user = await prisma.user.create({
-          data: {
-            phone,
-            name: `User_${phone.slice(-4)}`,
-            email: `${phone}@temp.com`,
-            provider: "GOOGLE", // Temporary
-            providerId: phone,
-            isOnboardingComplete: false
-          }
-        });
-      }
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          phone,
+          name: `User_${phone.slice(-4)}`,
+          email: `${phone}@temp.com`,
+          provider: 'GOOGLE',
+          providerId: phone,
+          isOnboardingComplete: false,
+        },
+      });
+    }
 
-      const token = generateToken(user);
-      return { user, token };
-    },
+    const token = generateToken(user);
+    return { user, token };
+  },
 
     completeOnboarding: async (_, { culturalPreference, location }, context) => {
       if (!context.user) throw new GraphQLError("Unauthorized");

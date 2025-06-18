@@ -94,7 +94,7 @@ const Sidebar = () => {
             <FaUtensils className="text-white text-lg" />
           </div>
           <h2 className="text-2xl font-bold" style={{ color: 'var(--primary-green)' }}>
-            RecipeHub
+            MealMuse
           </h2>
         </div>
         <button 
@@ -117,7 +117,7 @@ const Sidebar = () => {
                 <FaUtensils className="text-white text-xl" />
               </div>
               <h2 className="text-3xl font-bold" style={{ color: 'var(--primary-green)' }}>
-                RecipeHub
+                MealMuse
               </h2>
             </div>
             <p className="text-sm" style={{ color: 'var(--sage-green)' }}>
