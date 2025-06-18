@@ -13,6 +13,8 @@ import { authTypeDefs } from "../src/graphql/typeDefs/auth.js";
 import { authResolvers } from "../src/graphql/resolvers/auth.js";
 import { dashboardTypeDefs } from "../src/graphql/typeDefs/dashboard.js";
 import { dashboardResolvers } from "../src/graphql/resolvers/dashboard.js";
+import { culturalTypeDefs } from "../src/graphql/typeDefs/cultural.js";
+import { culturalResolvers } from "../src/graphql/resolvers/cultural.js";
 
 // Load env variables
 dotenv.config();
@@ -21,15 +23,17 @@ dotenv.config();
 connectDB();
 
 // Merge typeDefs and resolvers
-const typeDefs = [authTypeDefs, dashboardTypeDefs];
+const typeDefs = [authTypeDefs, dashboardTypeDefs, culturalTypeDefs];
 const resolvers = {
   Query: {
     ...authResolvers.Query,
-    ...dashboardResolvers.Query
+    ...dashboardResolvers.Query,
+    ...culturalResolvers.Query
   },
   Mutation: {
     ...authResolvers.Mutation,
-    ...dashboardResolvers.Mutation
+    ...dashboardResolvers.Mutation,
+    ...culturalResolvers.Mutation
   },
   Subscription: {
     ...authResolvers.Subscription

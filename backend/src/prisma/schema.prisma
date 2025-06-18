@@ -14,9 +14,14 @@ model User {
   id           String           @id @default(uuid())
   name         String
   email        String           @unique
+  phone        String?
   avatar       String?
   provider     ProviderType
   providerId   String           @unique
+  country      String?
+  state        String?
+  city         String?
+  isOnboardingComplete Boolean  @default(false)
   following    UserFollow[]     @relation("Following")
   followers    UserFollow[]     @relation("Followers")
   likedRecipes RecipeLike[]
@@ -28,14 +33,48 @@ model User {
   mealPlans    MealPlan[]
   shoppingLists ShoppingList[]
   contentReports ContentReport[] @relation("ReporterContentReports")
-  // moderatedReports ModeratorContentReport[] @relation("ModeratorContentReports")
   preferences  UserPreferences?
+  culturalPreference CulturalPreference?
+  locations    Location[]
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
   RecipeView RecipeView[]
 
   ContentReport ContentReport[] @relation("ModeratorContentReports")
+}
+
+model CulturalPreference {
+  id                    String        @id @default(uuid())
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                String        @unique
+  religion              Religion?
+  dietTypes             DietType[]
+  preferredCuisines     CuisineType[]
+  spiceLevel            SpiceLevel    @default(MEDIUM)
+  avoidIngredients      String[]
+  preferredIngredients  String[]
+  culturalRestrictions  String[]
+  festivalPreferences   String[]
+  regionalPreferences   String[]
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+}
+
+model Location {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  latitude  Float?
+  longitude Float?
+  country   String
+  state     String?
+  city      String?
+  pincode   String?
+  address   String?
+  isDefault Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model UserFollow {
@@ -68,8 +107,23 @@ model Recipe {
   ratings      Rating[]
   recipeViews  RecipeView[]
   mealPlanItems MealPlanItem[]
+  culturalTag  RecipeCulturalTag?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
+}
+
+model RecipeCulturalTag {
+  id                   String        @id @default(uuid())
+  recipe               Recipe        @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId             String        @unique
+  cuisineType          CuisineType
+  dietTypes            DietType[]
+  spiceLevel           SpiceLevel    @default(MEDIUM)
+  religion             Religion[]
+  region               String?
+  festival             String?
+  culturalSignificance String?
+  createdAt            DateTime      @default(now())
 }
 
 model Ingredient {
@@ -124,6 +178,59 @@ model Bookmark {
   recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
 
   @@unique([userId, recipeId])
+}
+
+// Enums for cultural preferences
+enum Religion {
+  HINDU
+  MUSLIM
+  CHRISTIAN
+  SIKH
+  BUDDHIST
+  JAIN
+  JEWISH
+  OTHER
+  NONE
+}
+
+enum DietType {
+  VEGETARIAN
+  NON_VEGETARIAN
+  VEGAN
+  JAIN_VEGETARIAN
+  HALAL
+  KOSHER
+  EGGETARIAN
+}
+
+enum CuisineType {
+  NORTH_INDIAN
+  SOUTH_INDIAN
+  GUJARATI
+  PUNJABI
+  BENGALI
+  MAHARASHTRIAN
+  RAJASTHANI
+  KERALA
+  TAMIL
+  ANDHRA
+  KASHMIRI
+  ASSAMESE
+  CHINESE
+  ITALIAN
+  MEXICAN
+  THAI
+  JAPANESE
+  CONTINENTAL
+  MIDDLE_EASTERN
+  MEDITERRANEAN
+}
+
+enum SpiceLevel {
+  MILD
+  MEDIUM
+  SPICY
+  VERY_SPICY
 }
 
 enum ProviderType {

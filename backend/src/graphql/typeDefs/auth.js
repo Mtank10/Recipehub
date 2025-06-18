@@ -5,9 +5,14 @@ export const authTypeDefs = gql`
         id: ID!
         name: String!
         email: String!
+        phone: String
         avatar: String
         provider: String!
         providerId: String!
+        country: String
+        state: String
+        city: String
+        isOnboardingComplete: Boolean!
         followers: [User]
         following: [User]
         likedRecipes: [RecipeLike]
@@ -21,6 +26,8 @@ export const authTypeDefs = gql`
         preferences: UserPreferences
         mealPlans: [MealPlan!]!
         shoppingLists: [ShoppingList!]!
+        culturalPreference: CulturalPreference
+        locations: [Location!]!
     }
     
     type Recipe {
@@ -43,6 +50,7 @@ export const authTypeDefs = gql`
     ratings:[Rating]! 
     views: [RecipeView!]!
     viewsCount: Int!
+    culturalTag: RecipeCulturalTag
   } 
   type RecipeList {
   recipes: [Recipe]!
