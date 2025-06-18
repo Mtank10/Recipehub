@@ -1,6 +1,7 @@
 import { prisma } from "../../config/db.js";
 import { GraphQLError } from "graphql";
-
+import { sendOTP, verifyOTP } from "../../services/twilioSms.js";
+import { generateToken } from "../resolvers/auth.js";
 // Mock data for countries and states (in production, use a proper API)
 const COUNTRIES_DATA = {
   IN: {
