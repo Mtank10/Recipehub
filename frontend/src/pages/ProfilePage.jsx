@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import { Link, useParams } from 'react-router-dom';
 import { FaEdit, FaTrash, FaHeart, FaClock, FaEye, FaUsers, FaUtensils, FaPlus } from 'react-icons/fa';
 import { jwtDecode } from 'jwt-decode';
+import AuthButton from "./AuthButton";
+
 
 const GET_USER_PROFILE = gql`
   query getUserProfile($id: ID!) {
