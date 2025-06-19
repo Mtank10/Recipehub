@@ -1,102 +1,188 @@
+import { useState } from 'react';
+import { useQuery, useMutation, gql } from '@apollo/client';
 import { motion } from 'framer-motion';
-import { FaPlay, FaClock, FaUsers, FaStar, FaBookOpen, FaAward, FaChevronRight } from 'react-icons/fa';
+import { FaPlay, FaClock, FaUsers, FaStar, FaBookOpen, FaAward, FaChevronRight, FaCheck, FaLock } from 'react-icons/fa';
 
-const courses = [
-  {
-    id: 1,
-    title: 'Italian Cuisine Masterclass',
-    instructor: 'Chef Marco Rossi',
-    progress: 65,
-    lessons: 12,
-    duration: '8 hours',
-    students: 1250,
-    rating: 4.8,
-    image: 'https://images.unsplash.com/photo-1572715376701-98568319fd0b?w=400',
-    description: 'Master the art of authentic Italian cooking with traditional recipes and techniques.',
-    level: 'Intermediate',
-    category: 'International Cuisine'
-  },
-  {
-    id: 2,
-    title: 'Baking Fundamentals',
-    instructor: 'Chef Sarah Johnson',
-    progress: 30,
-    lessons: 8,
-    duration: '6 hours',
-    students: 890,
-    rating: 4.9,
-    image: 'https://images.unsplash.com/photo-1557925923-cd4648e211a0?w=400',
-    description: 'Learn the science and art of baking from scratch to professional level.',
-    level: 'Beginner',
-    category: 'Baking & Pastry'
-  },
-  {
-    id: 3,
-    title: 'Asian Fusion Techniques',
-    instructor: 'Chef Kenji Tanaka',
-    progress: 0,
-    lessons: 15,
-    duration: '10 hours',
-    students: 567,
-    rating: 4.7,
-    image: 'https://images.unsplash.com/photo-1563379091339-03246963d96c?w=400',
-    description: 'Explore modern Asian fusion cooking with innovative techniques and flavors.',
-    level: 'Advanced',
-    category: 'International Cuisine'
-  },
-  {
-    id: 4,
-    title: 'Vegetarian Cooking Mastery',
-    instructor: 'Chef Emma Green',
-    progress: 85,
-    lessons: 10,
-    duration: '7 hours',
-    students: 1100,
-    rating: 4.6,
-    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
-    description: 'Create delicious and nutritious vegetarian meals that satisfy everyone.',
-    level: 'Intermediate',
-    category: 'Healthy Cooking'
+const GET_COURSES = gql`
+  query GetCourses($category: String, $level: CourseLevel, $page: Int, $limit: Int) {
+    getCourses(category: $category, level: $level, page: $page, limit: $limit) {
+      courses {
+        id
+        title
+        description
+        instructor
+        instructorAvatar
+        image
+        duration
+        level
+        category
+        price
+        rating
+        studentsCount
+        lessonsCount
+        isEnrolled
+        progress
+        lessons {
+          id
+          title
+          duration
+          order
+        }
+      }
+      totalPages
+      currentPage
+      totalCourses
+    }
   }
-];
+`;
 
-const categories = [
-  'All Courses',
-  'International Cuisine',
-  'Baking & Pastry',
-  'Healthy Cooking',
-  'Quick Meals',
-  'Advanced Techniques'
-];
+const GET_ENROLLED_COURSES = gql`
+  query GetEnrolledCourses {
+    getEnrolledCourses {
+      id
+      title
+      instructor
+      image
+      progress
+      lessons {
+        id
+        title
+        duration
+        order
+      }
+    }
+  }
+`;
+
+const ENROLL_IN_COURSE = gql`
+  mutation EnrollInCourse($courseId: ID!) {
+    enrollInCourse(courseId: $courseId) {
+      id
+      progress
+    }
+  }
+`;
+
+const MARK_LESSON_COMPLETED = gql`
+  mutation MarkLessonCompleted($lessonId: ID!) {
+    markLessonCompleted(lessonId: $lessonId)
+  }
+`;
 
 const CoursesPage = () => {
+  const [activeTab, setActiveTab] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [showCourseModal, setShowCourseModal] = useState(false);
+
+  const { data: coursesData, loading, refetch } = useQuery(GET_COURSES, {
+    variables: { 
+      category: selectedCategory || null, 
+      level: selectedLevel || null, 
+      page: 1, 
+      limit: 12 
+    }
+  });
+
+  const { data: enrolledData, refetch: refetchEnrolled } = useQuery(GET_ENROLLED_COURSES, {
+    skip: activeTab !== 'enrolled'
+  });
+
+  const [enrollInCourse] = useMutation(ENROLL_IN_COURSE, {
+    onCompleted: () => {
+      refetch();
+      refetchEnrolled();
+    }
+  });
+
+  const [markLessonCompleted] = useMutation(MARK_LESSON_COMPLETED, {
+    onCompleted: () => {
+      refetchEnrolled();
+    }
+  });
+
+  const courses = coursesData?.getCourses?.courses || [];
+  const enrolledCourses = enrolledData?.getEnrolledCourses || [];
+
+  const categories = [
+    'All Categories',
+    'International Cuisine',
+    'Baking & Pastry',
+    'Healthy Cooking',
+    'Quick Meals',
+    'Advanced Techniques'
+  ];
+
+  const levels = ['All Levels', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
+
+  const handleEnroll = async (courseId) => {
+    try {
+      await enrollInCourse({ variables: { courseId } });
+      alert('Successfully enrolled in course!');
+    } catch (error) {
+      console.error('Enrollment error:', error);
+      alert('Error enrolling in course. Please try again.');
+    }
+  };
+
+  const handleLessonComplete = async (lessonId) => {
+    try {
+      await markLessonCompleted({ variables: { lessonId } });
+    } catch (error) {
+      console.error('Error marking lesson complete:', error);
+    }
+  };
+
+  const openCourseModal = (course) => {
+    setSelectedCourse(course);
+    setShowCourseModal(true);
+  };
+
+  if (loading) return (
+    <div className="min-h-screen gradient-bg">
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="skeleton h-10 w-64 mb-6"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl p-4 card-shadow animate-pulse">
+              <div className="skeleton h-32 w-full rounded-xl mb-4"></div>
+              <div className="skeleton h-6 w-3/4 mb-2"></div>
+              <div className="skeleton h-4 w-1/2"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen gradient-bg">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Header */}
         <motion.div
-          className="text-center mb-12"
+          className="text-center mb-8"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center"
+            <div className="w-12 h-12 rounded-full flex items-center justify-center"
                  style={{ background: 'linear-gradient(135deg, var(--warm-yellow) 0%, var(--accent-orange) 100%)' }}>
-              <FaBookOpen className="text-white text-2xl" />
+              <FaBookOpen className="text-white text-xl" />
             </div>
-            <h1 className="text-4xl font-bold" style={{ color: 'var(--primary-green)' }}>
+            <h1 className="text-3xl font-bold" style={{ color: 'var(--primary-green)' }}>
               Cooking Courses
             </h1>
           </div>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Master culinary skills with our expert-led courses and become the chef you've always wanted to be
+          <p className="text-base text-gray-600 max-w-2xl mx-auto">
+            Master culinary skills with our expert-led courses
           </p>
         </motion.div>
 
         {/* Stats Section */}
         <motion.div
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12"
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
@@ -109,189 +195,398 @@ const CoursesPage = () => {
           ].map((stat, index) => (
             <motion.div
               key={stat.label}
-              className="bg-white rounded-2xl p-6 card-shadow text-center hover-lift"
+              className="bg-white rounded-xl p-4 card-shadow text-center hover-lift"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 * index }}
             >
-              <stat.icon className="text-3xl mx-auto mb-3" style={{ color: stat.color }} />
-              <div className="text-2xl font-bold mb-1" style={{ color: 'var(--dark-text)' }}>
+              <stat.icon className="text-2xl mx-auto mb-2" style={{ color: stat.color }} />
+              <div className="text-xl font-bold mb-1" style={{ color: 'var(--dark-text)' }}>
                 {stat.value}
               </div>
-              <div className="text-sm font-medium" style={{ color: 'var(--sage-green)' }}>
+              <div className="text-xs font-medium" style={{ color: 'var(--sage-green)' }}>
                 {stat.label}
               </div>
             </motion.div>
           ))}
         </motion.div>
 
-        {/* Category Filter */}
-        <motion.div
-          className="mb-8"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-        >
-          <div className="flex gap-3 overflow-x-auto custom-scrollbar pb-2">
-            {categories.map((category, index) => (
-              <button
-                key={category}
-                className={`category-pill ${index === 0 ? 'active' : ''}`}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-        </motion.div>
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+              activeTab === 'all' 
+                ? 'bg-green-500 text-white' 
+                : 'bg-white text-gray-700 hover:bg-green-50'
+            }`}
+          >
+            All Courses
+          </button>
+          <button
+            onClick={() => setActiveTab('enrolled')}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+              activeTab === 'enrolled' 
+                ? 'bg-green-500 text-white' 
+                : 'bg-white text-gray-700 hover:bg-green-50'
+            }`}
+          >
+            My Courses
+          </button>
+        </div>
 
-        {/* Courses Grid */}
-        <motion.div
-          className="grid grid-cols-1 md:grid-cols-2 gap-8"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-        >
-          {courses.map((course, index) => (
+        {activeTab === 'all' && (
+          <>
+            {/* Filters */}
             <motion.div
-              key={course.id}
-              className="bg-white rounded-3xl card-shadow overflow-hidden hover-lift group"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
+              className="mb-6"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
             >
-              <div className="relative">
-                <img
-                  src={course.image}
-                  alt={course.title}
-                  className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
-                
-                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
-                  <span className="text-xs font-semibold" style={{ color: 'var(--primary-green)' }}>
-                    {course.category}
-                  </span>
-                </div>
-                
-                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
-                  <span className="text-xs font-semibold" style={{ color: 'var(--accent-orange)' }}>
-                    {course.level}
-                  </span>
-                </div>
-
-                <div className="absolute bottom-4 left-4 right-4">
-                  <div className="flex items-center gap-2 text-white">
-                    <FaStar className="text-yellow-400" />
-                    <span className="font-semibold">{course.rating}</span>
-                    <span className="text-sm">({course.students} students)</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="p-6">
-                <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--dark-text)' }}>
-                  {course.title}
-                </h3>
-                
-                <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                  {course.description}
-                </p>
-
-                <div className="flex items-center gap-2 mb-4">
-                  <img
-                    src={`https://i.pravatar.cc/32?u=${course.instructor}`}
-                    alt={course.instructor}
-                    className="w-8 h-8 rounded-full border-2 border-green-200"
-                  />
-                  <span className="text-sm font-medium" style={{ color: 'var(--sage-green)' }}>
-                    {course.instructor}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4 mb-4 text-center">
-                  <div>
-                    <div className="flex items-center justify-center gap-1 mb-1">
-                      <FaBookOpen className="text-sm" style={{ color: 'var(--sage-green)' }} />
-                    </div>
-                    <div className="text-sm font-semibold" style={{ color: 'var(--dark-text)' }}>
-                      {course.lessons} lessons
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-center gap-1 mb-1">
-                      <FaClock className="text-sm" style={{ color: 'var(--sage-green)' }} />
-                    </div>
-                    <div className="text-sm font-semibold" style={{ color: 'var(--dark-text)' }}>
-                      {course.duration}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-center gap-1 mb-1">
-                      <FaUsers className="text-sm" style={{ color: 'var(--sage-green)' }} />
-                    </div>
-                    <div className="text-sm font-semibold" style={{ color: 'var(--dark-text)' }}>
-                      {course.students}
-                    </div>
-                  </div>
-                </div>
-
-                {course.progress > 0 && (
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium" style={{ color: 'var(--dark-text)' }}>
-                        Progress
-                      </span>
-                      <span className="text-sm font-semibold" style={{ color: 'var(--primary-green)' }}>
-                        {course.progress}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="h-2 rounded-full transition-all duration-300"
-                        style={{ 
-                          width: `${course.progress}%`,
-                          background: 'linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%)'
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
-
-                <button className="btn-primary w-full flex items-center justify-center gap-2 group-hover:scale-105 transition-transform duration-300">
-                  <FaPlay />
-                  <span>{course.progress > 0 ? 'Continue Learning' : 'Start Course'}</span>
-                  <FaChevronRight className="text-sm" />
-                </button>
+              <div className="flex gap-3 overflow-x-auto custom-scrollbar pb-2">
+                {categories.map((category, index) => (
+                  <button
+                    key={category}
+                    onClick={() => setSelectedCategory(category === 'All Categories' ? '' : category)}
+                    className={`category-pill ${
+                      (category === 'All Categories' && !selectedCategory) || selectedCategory === category 
+                        ? 'active' 
+                        : ''
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
               </div>
             </motion.div>
-          ))}
-        </motion.div>
 
-        {/* Call to Action */}
-        <motion.div
-          className="text-center mt-16"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-        >
-          <div className="bg-white rounded-3xl card-shadow p-8 max-w-2xl mx-auto">
-            <div className="text-4xl mb-4">🎓</div>
-            <h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--primary-green)' }}>
-              Ready to Become a Master Chef?
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Join thousands of students learning from world-class chefs and take your cooking to the next level.
-            </p>
-            <div className="flex flex-wrap gap-4 justify-center">
-              <button className="btn-primary">
-                Browse All Courses
-              </button>
-              <button className="btn-secondary">
-                Free Trial
-              </button>
-            </div>
+            {/* Courses Grid */}
+            <motion.div
+              className="grid grid-cols-1 md:grid-cols-2 gap-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+            >
+              {courses.map((course, index) => (
+                <motion.div
+                  key={course.id}
+                  className="bg-white rounded-2xl card-shadow overflow-hidden hover-lift group cursor-pointer"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                  onClick={() => openCourseModal(course)}
+                >
+                  <div className="relative">
+                    <img
+                      src={course.image}
+                      alt={course.title}
+                      className="w-full h-40 object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+                    
+                    <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
+                      <span className="text-xs font-semibold" style={{ color: 'var(--primary-green)' }}>
+                        {course.category}
+                      </span>
+                    </div>
+                    
+                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
+                      <span className="text-xs font-semibold" style={{ color: 'var(--accent-orange)' }}>
+                        {course.level}
+                      </span>
+                    </div>
+
+                    <div className="absolute bottom-3 left-3 right-3">
+                      <div className="flex items-center gap-2 text-white text-sm">
+                        <FaStar className="text-yellow-400" />
+                        <span className="font-semibold">{course.rating}</span>
+                        <span>({course.studentsCount} students)</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4">
+                    <h3 className="text-lg font-bold mb-2 line-clamp-2" style={{ color: 'var(--dark-text)' }}>
+                      {course.title}
+                    </h3>
+                    
+                    <p className="text-gray-600 mb-3 text-sm line-clamp-2">
+                      {course.description}
+                    </p>
+
+                    <div className="flex items-center gap-2 mb-3">
+                      <img
+                        src={course.instructorAvatar || `https://i.pravatar.cc/32?u=${course.instructor}`}
+                        alt={course.instructor}
+                        className="w-6 h-6 rounded-full border border-green-200"
+                      />
+                      <span className="text-sm font-medium" style={{ color: 'var(--sage-green)' }}>
+                        {course.instructor}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3 mb-4 text-center">
+                      <div>
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <FaBookOpen className="text-xs" style={{ color: 'var(--sage-green)' }} />
+                        </div>
+                        <div className="text-sm font-semibold" style={{ color: 'var(--dark-text)' }}>
+                          {course.lessonsCount}
+                        </div>
+                        <div className="text-xs" style={{ color: 'var(--sage-green)' }}>
+                          lessons
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <FaClock className="text-xs" style={{ color: 'var(--sage-green)' }} />
+                        </div>
+                        <div className="text-sm font-semibold" style={{ color: 'var(--dark-text)' }}>
+                          {course.duration}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <FaUsers className="text-xs" style={{ color: 'var(--sage-green)' }} />
+                        </div>
+                        <div className="text-sm font-semibold" style={{ color: 'var(--dark-text)' }}>
+                          {course.studentsCount}
+                        </div>
+                      </div>
+                    </div>
+
+                    {course.isEnrolled && course.progress > 0 && (
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium" style={{ color: 'var(--dark-text)' }}>
+                            Progress
+                          </span>
+                          <span className="text-xs font-semibold" style={{ color: 'var(--primary-green)' }}>
+                            {Math.round(course.progress)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="h-2 rounded-full transition-all duration-300"
+                            style={{ 
+                              width: `${course.progress}%`,
+                              background: 'linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%)'
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+
+                    <button 
+                      className="btn-primary w-full flex items-center justify-center gap-2 text-sm group-hover:scale-105 transition-transform duration-300"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!course.isEnrolled) {
+                          handleEnroll(course.id);
+                        }
+                      }}
+                    >
+                      <FaPlay />
+                      <span>{course.isEnrolled ? 'Continue Learning' : 'Enroll Now'}</span>
+                      <FaChevronRight className="text-xs" />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </>
+        )}
+
+        {activeTab === 'enrolled' && (
+          <motion.div
+            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6 }}
+          >
+            {enrolledCourses.length > 0 ? (
+              enrolledCourses.map((course, index) => (
+                <motion.div
+                  key={course.id}
+                  className="bg-white rounded-2xl card-shadow p-4"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                >
+                  <div className="flex gap-4 mb-4">
+                    <img
+                      src={course.image}
+                      alt={course.title}
+                      className="w-20 h-20 object-cover rounded-xl"
+                    />
+                    <div className="flex-1">
+                      <h3 className="font-bold text-base mb-1" style={{ color: 'var(--dark-text)' }}>
+                        {course.title}
+                      </h3>
+                      <p className="text-sm mb-2" style={{ color: 'var(--sage-green)' }}>
+                        {course.instructor}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium" style={{ color: 'var(--dark-text)' }}>
+                          Progress: {Math.round(course.progress)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                        <div
+                          className="h-2 rounded-full"
+                          style={{ 
+                            width: `${course.progress}%`,
+                            background: 'linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%)'
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm mb-2" style={{ color: 'var(--primary-green)' }}>
+                      Lessons
+                    </h4>
+                    {course.lessons.slice(0, 3).map((lesson) => (
+                      <div
+                        key={lesson.id}
+                        className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 cursor-pointer"
+                        onClick={() => handleLessonComplete(lesson.id)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 rounded-full border-2 border-green-300 flex items-center justify-center">
+                            <FaCheck className="text-xs text-green-500" />
+                          </div>
+                          <div>
+                            <h5 className="text-sm font-medium">{lesson.title}</h5>
+                            <p className="text-xs text-gray-500">{lesson.duration}</p>
+                          </div>
+                        </div>
+                        <FaPlay className="text-green-500 text-xs" />
+                      </div>
+                    ))}
+                  </div>
+
+                  <button className="btn-secondary w-full mt-4 text-sm">
+                    Continue Course
+                  </button>
+                </motion.div>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <div className="text-6xl mb-4">📚</div>
+                <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--dark-text)' }}>
+                  No enrolled courses yet
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Start learning by enrolling in a course
+                </p>
+                <button
+                  onClick={() => setActiveTab('all')}
+                  className="btn-primary"
+                >
+                  Browse Courses
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Course Detail Modal */}
+        {showCourseModal && selectedCourse && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <motion.div
+              className="bg-white rounded-3xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold" style={{ color: 'var(--primary-green)' }}>
+                  Course Details
+                </h3>
+                <button
+                  onClick={() => setShowCourseModal(false)}
+                  className="p-2 rounded-full hover:bg-gray-100"
+                >
+                  <FaTimes className="text-gray-500" />
+                </button>
+              </div>
+
+              <img
+                src={selectedCourse.image}
+                alt={selectedCourse.title}
+                className="w-full h-48 object-cover rounded-xl mb-4"
+              />
+
+              <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--dark-text)' }}>
+                {selectedCourse.title}
+              </h2>
+
+              <p className="text-gray-600 mb-4">{selectedCourse.description}</p>
+
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="text-center p-3 rounded-xl" style={{ background: 'var(--cream)' }}>
+                  <FaBookOpen className="text-xl mx-auto mb-2" style={{ color: 'var(--primary-green)' }} />
+                  <div className="font-bold">{selectedCourse.lessonsCount}</div>
+                  <div className="text-xs">Lessons</div>
+                </div>
+                <div className="text-center p-3 rounded-xl" style={{ background: 'var(--cream)' }}>
+                  <FaClock className="text-xl mx-auto mb-2" style={{ color: 'var(--accent-orange)' }} />
+                  <div className="font-bold">{selectedCourse.duration}</div>
+                  <div className="text-xs">Duration</div>
+                </div>
+              </div>
+
+              <div className="space-y-2 mb-6">
+                <h4 className="font-semibold" style={{ color: 'var(--primary-green)' }}>
+                  Course Content
+                </h4>
+                {selectedCourse.lessons.map((lesson, index) => (
+                  <div
+                    key={lesson.id}
+                    className="flex items-center justify-between p-3 rounded-lg border"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
+                        {selectedCourse.isEnrolled ? (
+                          <FaPlay className="text-xs text-green-500" />
+                        ) : (
+                          <FaLock className="text-xs text-gray-400" />
+                        )}
+                      </div>
+                      <div>
+                        <h5 className="text-sm font-medium">{lesson.title}</h5>
+                        <p className="text-xs text-gray-500">{lesson.duration}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCourseModal(false)}
+                  className="flex-1 btn-secondary text-sm"
+                >
+                  Close
+                </button>
+                {!selectedCourse.isEnrolled && (
+                  <button
+                    onClick={() => {
+                      handleEnroll(selectedCourse.id);
+                      setShowCourseModal(false);
+                    }}
+                    className="flex-1 btn-primary text-sm"
+                  >
+                    Enroll Now
+                  </button>
+                )}
+              </div>
+            </motion.div>
           </div>
-        </motion.div>
+        )}
       </div>
     </div>
   );

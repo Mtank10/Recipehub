@@ -9,38 +9,14 @@ import compression from "compression";
 import rateLimit from "express-rate-limit";
 import { connectDB, prisma } from "../src/config/db.js";
 import { authenticate } from "../src/middlewares/authMiddleware.js";
-import { authTypeDefs } from "../src/graphql/typeDefs/auth.js";
-import { authResolvers } from "../src/graphql/resolvers/auth.js";
-import { dashboardTypeDefs } from "../src/graphql/typeDefs/dashboard.js";
-import { dashboardResolvers } from "../src/graphql/resolvers/dashboard.js";
-import { culturalTypeDefs } from "../src/graphql/typeDefs/cultural.js";
-import { culturalResolvers } from "../src/graphql/resolvers/cultural.js";
+import { typeDefs } from "../src/graphql/typeDefs/index.js";
+import { resolvers } from "../src/graphql/resolvers/index.js";
 
 // Load env variables
 dotenv.config();
 
 // Connect to DB
 connectDB();
-
-// Merge typeDefs and resolvers
-const typeDefs = [authTypeDefs, dashboardTypeDefs, culturalTypeDefs];
-const resolvers = {
-  Query: {
-    ...authResolvers.Query,
-    ...dashboardResolvers.Query,
-    ...culturalResolvers.Query
-  },
-  Mutation: {
-    ...authResolvers.Mutation,
-    ...dashboardResolvers.Mutation,
-    ...culturalResolvers.Mutation
-  },
-  Subscription: {
-    ...authResolvers.Subscription
-  },
-  User: authResolvers.User,
-  Recipe: authResolvers.Recipe
-};
 
 // Create Apollo Server
 const server = new ApolloServer({
