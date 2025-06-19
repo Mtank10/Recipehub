@@ -13,7 +13,7 @@ function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-async function sendOTP(phone) {
+export const  sendOTP = async (phone)=> {
   const otp = generateOTP();
   const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
@@ -29,7 +29,7 @@ async function sendOTP(phone) {
   return true;
 }
 
-function verifyOTP(phone, otp) {
+export const verifyOTP=(phone, otp)=> {
   const record = otpStore.get(phone);
   if (!record) return false;
 
@@ -44,7 +44,3 @@ function verifyOTP(phone, otp) {
   return isValid;
 }
 
-export default {
-  sendOTP,
-  verifyOTP,
-}
