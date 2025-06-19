@@ -560,8 +560,3 @@ export const culturalResolvers = {
   }
 };
 
-// Helper function to generate JWT token
-function generateToken(user) {
-  // Import and use your existing token generation logic
-  return "mock-token";
-}
