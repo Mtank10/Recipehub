@@ -44,7 +44,7 @@ function verifyOTP(phone, otp) {
   return isValid;
 }
 
-module.exports = {
+export default {
   sendOTP,
   verifyOTP,
-};
+}

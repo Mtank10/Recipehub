@@ -435,7 +435,7 @@ export const culturalResolvers = {
 
     const token = generateToken(user);
     return { user, token };
-  },
+},
 
     completeOnboarding: async (_, { culturalPreference, location }, context) => {
       if (!context.user) throw new GraphQLError("Unauthorized");
