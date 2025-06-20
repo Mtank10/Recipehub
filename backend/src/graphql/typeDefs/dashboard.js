@@ -97,32 +97,6 @@ export const dashboardTypeDefs = gql`
     newFollowers: Int!
   }
 
-  # # Input Types
-  # input MealPlanInput {
-  #   name: String!
-  #   weekStartDate: String!
-  # }
-
-  # input MealPlanItemInput {
-  #   recipeId: String!
-  #   dayOfWeek: Int!
-  #   mealType: String!
-  #   servings: Int!
-  #   notes: String
-  # }
-
-  # input ShoppingListInput {
-  #   name: String!
-  #   mealPlanId: String
-  # }
-
-  # input ShoppingListItemInput {
-  #   ingredientName: String!
-  #   quantity: String!
-  #   unit: String
-  #   category: String!
-  #   notes: String
-  # }
 
   input ContentReportInput {
     contentType: String!
@@ -148,15 +122,6 @@ export const dashboardTypeDefs = gql`
     getUserAnalytics(userId: String): UserAnalytics
     getPlatformAnalytics(startDate: String!, endDate: String!): [PlatformAnalytics!]!
     
-    # # Meal Planning
-    # getMealPlans: [MealPlan!]!
-    # getMealPlan(id: ID!): MealPlan
-    # getMealPlanForWeek(weekStartDate: String!): MealPlan
-    
-    # # Shopping Lists
-    # getShoppingLists: [ShoppingList!]!
-    # getShoppingList(id: ID!): ShoppingList
-    # generateShoppingListFromMealPlan(mealPlanId: ID!): ShoppingList!
     
     # Content Moderation
     getContentReports(status: String): [ContentReport!]!
@@ -172,24 +137,7 @@ export const dashboardTypeDefs = gql`
     # Analytics
     trackRecipeView(recipeId: ID!): Boolean!
     updateUserAnalytics: UserAnalytics!
-    
-    # # Meal Planning
-    # createMealPlan(input: MealPlanInput!): MealPlan!
-    # updateMealPlan(id: ID!, input: MealPlanInput!): MealPlan!
-    # deleteMealPlan(id: ID!): Boolean!
-    # addMealPlanItem(mealPlanId: ID!, input: MealPlanItemInput!): MealPlanItem!
-    # updateMealPlanItem(id: ID!, input: MealPlanItemInput!): MealPlanItem!
-    # removeMealPlanItem(id: ID!): Boolean!
-    
-    # # Shopping Lists
-    # createShoppingList(input: ShoppingListInput!): ShoppingList!
-    # updateShoppingList(id: ID!, input: ShoppingListInput!): ShoppingList!
-    # deleteShoppingList(id: ID!): Boolean!
-    # addShoppingListItem(shoppingListId: ID!, input: ShoppingListItemInput!): ShoppingListItem!
-    # updateShoppingListItem(id: ID!, isPurchased: Boolean, notes: String): ShoppingListItem!
-    # removeShoppingListItem(id: ID!): Boolean!
-    # markShoppingListCompleted(id: ID!): ShoppingList!
-    
+     
     # Content Moderation
     reportContent(input: ContentReportInput!): ContentReport!
     updateContentReport(id: ID!, status: String!, moderatorNotes: String): ContentReport!
