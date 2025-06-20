@@ -1,5 +1,5 @@
 import { Suspense, useState } from "react";
-import { FaUtensils, FaHeart, FaBook, FaUsers, FaBars, FaTimes, FaPlus, FaChartLine, FaCalendarAlt, FaGlobe, FaShoppingCart, FaAnalytics } from "react-icons/fa";
+import { FaUtensils, FaHeart, FaBook, FaUsers, FaBars, FaTimes, FaPlus, FaChartLine, FaCalendarAlt, FaGlobe, FaShoppingCart  } from "react-icons/fa";
 import { useQuery } from "@tanstack/react-query";
 import { useApolloClient, gql } from "@apollo/client";
 import { Link, useLocation } from "react-router-dom";
@@ -82,7 +82,7 @@ const Sidebar = () => {
     { path: "/dashboard", icon: FaChartLine, label: "Dashboard", color: "var(--accent-orange)" },
     { path: "/meal-planner", icon: FaCalendarAlt, label: "Meal Planner", color: "var(--warm-yellow)" },
     { path: "/shopping-list", icon: FaShoppingCart, label: "Shopping List", color: "var(--sage-green)" },
-    { path: "/analytics", icon: FaAnalytics, label: "Analytics", color: "var(--accent-orange)" },
+    { path: "/analytics", icon: FaChartLine, label: "Analytics", color: "var(--accent-orange)" },
     { path: "/favorites", icon: FaHeart, label: "Favorites", color: "var(--sage-green)" },
     { path: "/courses", icon: FaBook, label: "Courses", color: "var(--primary-green)" },
     { path: "/community", icon: FaUsers, label: "Community", color: "var(--accent-orange)" },
