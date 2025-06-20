@@ -34,7 +34,7 @@ export const communityTypeDefs = gql`
     badge: String!
   }
 
-  type RecentActivity {
+  type RecentActivity1 {
     id: ID!
     type: ActivityType!
     user: User!
@@ -56,13 +56,13 @@ export const communityTypeDefs = gql`
     stats: CommunityStats!
     trendingRecipes: [TrendingRecipe!]!
     topChefs: [TopChef!]!
-    recentActivity: [RecentActivity!]!
+    recentActivity: [RecentActivity1!]!
   }
 
   extend type Query {
     getCommunityData: CommunityData!
     getTrendingRecipes(limit: Int): [TrendingRecipe!]!
     getTopChefs(limit: Int): [TopChef!]!
-    getRecentActivity(limit: Int): [RecentActivity!]!
+    getRecentActivity(limit: Int): [RecentActivity1!]!
   }
 `;
