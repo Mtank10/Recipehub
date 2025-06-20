@@ -243,4 +243,4 @@ export const dashboardTypeDefs = gql`
     # User Preferences
     updateUserPreferences(input: UserPreferencesInput!): UserPreferences!
   }
-`;
+`; 
