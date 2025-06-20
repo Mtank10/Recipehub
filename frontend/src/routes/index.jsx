@@ -11,6 +11,8 @@ import ProfilePage from "../pages/ProfilePage";
 import CreateRecipe from "../pages/CreateRecipe";
 import DashboardPage from "../pages/DashboardPage";
 import MealPlannerPage from "../pages/MealPlannerPage";
+import ShoppingListPage from "../pages/ShoppingListPage";
+import AnalyticsPage from "../pages/AnalyticsPage";
 import OnboardingPage from "../pages/OnboardingPage";
 import CulturalRecipesPage from "../pages/CulturalRecipesPage";
 import ProtectedRoute from "../components/ProtectedRoute";
@@ -50,6 +52,16 @@ const AppRoutes = () => {
           <Route path="meal-planner" element={
             <ProtectedRoute>
               <MealPlannerPage />
+            </ProtectedRoute>
+          } />
+          <Route path="shopping-list" element={
+            <ProtectedRoute>
+              <ShoppingListPage />
+            </ProtectedRoute>
+          } />
+          <Route path="analytics" element={
+            <ProtectedRoute>
+              <AnalyticsPage />
             </ProtectedRoute>
           } />
         </Route>
