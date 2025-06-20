@@ -39,52 +39,6 @@ export const dashboardTypeDefs = gql`
     totalComments: Int!
   }
 
-  # // # Meal Planning Types
-  # // type MealPlan {
-  # //   id: ID!
-  # //   userId: String!
-  # //   name: String!
-  # //   weekStartDate: String!
-  # //   isActive: Boolean!
-  # //   items: [MealPlanItem!]!
-  # //   createdAt: String!
-  # //   updatedAt: String!
-  # // }
-
-  # // type MealPlanItem {
-  # //   id: ID!
-  # //   mealPlanId: String!
-  # //   recipe: Recipe!
-  # //   dayOfWeek: Int!
-  # //   mealType: String!
-  # //   servings: Int!
-  # //   notes: String
-  # //   createdAt: String!
-  # // }
-
-  # // # Shopping List Types
-  # // type ShoppingList {
-  # //   id: ID!
-  # //   userId: String!
-  # //   mealPlanId: String
-  # //   name: String!
-  # //   isCompleted: Boolean!
-  # //   items: [ShoppingListItem!]!
-  # //   createdAt: String!
-  # //   updatedAt: String!
-  # // }
-
-  # // type ShoppingListItem {
-  # //   id: ID!
-  # //   shoppingListId: String!
-  # //   ingredientName: String!
-  # //   quantity: String!
-  # //   unit: String
-  # //   category: String!
-  # //   isPurchased: Boolean!
-  # //   notes: String
-  # //   createdAt: String!
-  # // }
 
   # Content Moderation Types
   type ContentReport {
@@ -124,7 +78,7 @@ export const dashboardTypeDefs = gql`
     recentActivity: [RecentActivity!]!
     weeklyStats: WeeklyStats!
     popularRecipes: [Recipe!]!
-    //upcomingMeals: [MealPlanItem!]!
+    # upcomingMeals: [MealPlanItem!]!
   }
 
   type RecentActivity {
