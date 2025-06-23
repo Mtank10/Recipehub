@@ -79,7 +79,7 @@ const Sidebar = () => {
   const navItems = [
     { path: "/", icon: FaUtensils, label: "Recipes", color: "var(--primary-green)" },
     { path: "/cultural-recipes", icon: FaGlobe, label: "Cultural Recipes", color: "var(--warm-yellow)" },
-    { path: "/dashboard", icon: FaChartLine, label: "Dashboard", color: "var(--accent-orange)" },
+    // { path: "/dashboard", icon: FaChartLine, label: "Dashboard", color: "var(--accent-orange)" },
     { path: "/meal-planner", icon: FaCalendarAlt, label: "Meal Planner", color: "var(--warm-yellow)" },
     { path: "/shopping-list", icon: FaShoppingCart, label: "Shopping List", color: "var(--sage-green)" },
     { path: "/analytics", icon: FaChartLine, label: "Analytics", color: "var(--accent-orange)" },

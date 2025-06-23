@@ -44,11 +44,11 @@ const AppRoutes = () => {
               <CreateRecipe />
             </ProtectedRoute>
           } />
-          <Route path="dashboard" element={
+          {/* <Route path="dashboard" element={
             <ProtectedRoute>
               <DashboardPage />
             </ProtectedRoute>
-          } />
+          } /> */}
           <Route path="meal-planner" element={
             <ProtectedRoute>
               <MealPlannerPage />

@@ -12,7 +12,10 @@ const otpStore = new Map();
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
-
+function formatPhoneNumber(phone) {
+  if (phone.startsWith('+')) return phone;
+  return `+91${phone}`; // Replace +91 with your country code
+}
 export const  sendOTP = async (phone)=> {
   const otp = generateOTP();
   const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
@@ -22,7 +25,7 @@ export const  sendOTP = async (phone)=> {
   await twilio.messages.create({
     body: `Your OTP code is: ${otp}`,
     from: fromPhone,
-    to: phone,
+    to: formatPhoneNumber(phone),
   });
 
   console.log(`Sent OTP ${otp} to ${phone}`);
