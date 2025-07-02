@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import { logger } from '../utils/logger.js';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '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',
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 
