@@ -118,10 +118,10 @@ const RecipeGrid = ({ selectedCategory, searchQuery, recipes: passedRecipes }) =
   if (error) return <p className="text-red-500 text-center text-sm">Error: {error.message}</p>;
   
   return (
-    <div className="flex flex-col items-center w-full px-2 md:px-4">
+    <div className="flex flex-col items-center w-full px-1 sm:px-2 md:px-4">
       {/* Recipe Grid */}
       <motion.div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full mb-8"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 w-full mb-6 md:mb-8"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
@@ -130,10 +130,10 @@ const RecipeGrid = ({ selectedCategory, searchQuery, recipes: passedRecipes }) =
           Array.from({ length: 6 }).map((_, index) => (
             <div
               key={index}
-              className="recipe-card h-64 w-full"
+              className="recipe-card h-56 md:h-64 w-full"
             >
-              <div className="skeleton h-32 w-full rounded-t-xl"></div>
-              <div className="p-3">
+              <div className="skeleton h-28 md:h-32 w-full rounded-t-xl"></div>
+              <div className="p-2 md:p-3">
                 <div className="skeleton h-4 w-3/4 mb-2 rounded"></div>
                 <div className="skeleton h-3 w-1/2 mb-3 rounded"></div>
                 <div className="skeleton h-6 w-full rounded-full"></div>
@@ -144,7 +144,7 @@ const RecipeGrid = ({ selectedCategory, searchQuery, recipes: passedRecipes }) =
           filteredRecipes.map((recipe, index) => (
             <motion.div
               key={recipe.id}
-              className="recipe-card hover-lift cursor-pointer group compact-card"
+              className="recipe-card hover-lift cursor-pointer group compact-card w-full"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
@@ -154,7 +154,7 @@ const RecipeGrid = ({ selectedCategory, searchQuery, recipes: passedRecipes }) =
                   <img
                     src={recipe.image}
                     alt={recipe.title}
-                    className="w-full h-32 object-cover transition-transform duration-500 group-hover:scale-110"
+                    className="w-full h-28 sm:h-32 md:h-36 object-cover transition-transform duration-500 group-hover:scale-110"
                     loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -162,26 +162,26 @@ const RecipeGrid = ({ selectedCategory, searchQuery, recipes: passedRecipes }) =
                     <FaEye className="text-xs" style={{ color: 'var(--primary-green)' }} />
                   </div>
                   <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1">
-                    <span className="text-xs font-semibold" style={{ color: 'var(--primary-green)' }}>
+                    <span className="text-xs font-semibold whitespace-nowrap" style={{ color: 'var(--primary-green)' }}>
                       {recipe.category}
                     </span>
                   </div>
                 </div>
                 
-                <div className="p-3">
-                  <h3 className="text-sm font-bold mb-1 line-clamp-2 group-hover:text-green-700 transition-colors duration-300" 
+                <div className="p-2 sm:p-3">
+                  <h3 className="text-xs sm:text-sm font-bold mb-1 line-clamp-2 group-hover:text-green-700 transition-colors duration-300" 
                       style={{ color: 'var(--dark-text)' }}>
                     {recipe.title}
                   </h3>
                   
-                  <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                  <p className="text-xs text-gray-600 mb-2 line-clamp-1 sm:line-clamp-2">
                     {recipe.description}
                   </p>
 
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-1">
                       <FaClock className="text-xs" style={{ color: 'var(--sage-green)' }} />
-                      <span className="text-xs font-medium" style={{ color: 'var(--dark-text)' }}>
+                      <span className="text-xs font-medium whitespace-nowrap" style={{ color: 'var(--dark-text)' }}>
                         {recipe.cookingTime}m
                       </span>
                     </div>
@@ -194,14 +194,14 @@ const RecipeGrid = ({ selectedCategory, searchQuery, recipes: passedRecipes }) =
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <div className="flex items-center gap-1">
                       <img
                         src={recipe.author.avatar || 'https://via.placeholder.com/20'}
                         alt={recipe.author.name}
-                        className="w-4 h-4 rounded-full border border-green-200"
+                        className="w-3 sm:w-4 h-3 sm:h-4 rounded-full border border-green-200"
                       />
-                      <span className="text-xs font-medium" style={{ color: 'var(--sage-green)' }}>
+                      <span className="text-xs font-medium truncate max-w-[80px] sm:max-w-none" style={{ color: 'var(--sage-green)' }}>
                         {recipe.author.name}
                       </span>
                     </div>
@@ -218,7 +218,7 @@ const RecipeGrid = ({ selectedCategory, searchQuery, recipes: passedRecipes }) =
                     )}
                   </div>
 
-                  <button className="btn-secondary w-full group-hover:scale-105 transition-transform duration-300 text-xs">
+                  <button className="btn-secondary w-full group-hover:scale-105 transition-transform duration-300 text-xs py-2">
                     View Recipe
                   </button>
                 </div>
@@ -228,7 +228,7 @@ const RecipeGrid = ({ selectedCategory, searchQuery, recipes: passedRecipes }) =
         ) : (
           <div className="col-span-full text-center py-8">
             <div className="text-4xl mb-3">🔍</div>
-            <p className="text-lg font-semibold mb-1" style={{ color: 'var(--dark-text)' }}>
+            <p className="text-base md:text-lg font-semibold mb-1" style={{ color: 'var(--dark-text)' }}>
               No recipes found
             </p>
             <p className="text-gray-600 text-sm">

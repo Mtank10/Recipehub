@@ -121,10 +121,10 @@ const Sidebar = () => {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed top-0 left-0 h-full sidebar-gradient shadow-2xl z-50 transform transition-all duration-300 ease-in-out sidebar-sticky
+      <aside className={`fixed top-0 left-0 h-full sidebar-gradient shadow-2xl z-50 transform transition-all duration-300 ease-in-out sidebar-sticky mobile-sidebar
         ${open ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 md:static md:flex md:w-[240px] custom-scrollbar overflow-y-auto`}>
         
-        <div className="flex flex-col h-full w-[240px] p-4">
+        <div className="flex flex-col h-full w-full max-w-[240px] p-3 md:p-4">
           {/* Logo Section */}
           <div className="text-center mb-6 hidden md:block">
             <div className="flex items-center justify-center gap-2 mb-2">
@@ -143,7 +143,7 @@ const Sidebar = () => {
           {/* Profile Section */}
           {token ? (
             <Suspense fallback={
-              <div className="flex flex-col items-center mb-4 p-3 bg-white rounded-xl animate-pulse">
+              <div className="flex flex-col items-center mb-3 md:mb-4 p-2 md:p-3 bg-white rounded-xl animate-pulse">
                 <div className="w-12 h-12 bg-gray-200 rounded-full mb-2"></div>
                 <div className="h-3 bg-gray-200 rounded w-16 mb-1"></div>
                 <div className="h-2 bg-gray-200 rounded w-12"></div>
@@ -152,7 +152,7 @@ const Sidebar = () => {
               <ProfileInfo id={id} />
             </Suspense>
           ) : (
-            <div className="mb-4 p-3 bg-white rounded-xl card-shadow text-center">
+            <div className="mb-3 md:mb-4 p-2 md:p-3 bg-white rounded-xl card-shadow text-center">
               <div className="mb-3">
                 <div className="w-12 h-12 bg-gray-100 rounded-full mx-auto flex items-center justify-center mb-2">
                   <FaUtensils className="text-lg" style={{ color: 'var(--sage-green)' }} />
@@ -166,7 +166,7 @@ const Sidebar = () => {
           )}
 
           {/* Navigation */}
-          <nav className="flex flex-col space-y-1 mb-4">
+          <nav className="flex flex-col space-y-1 mb-3 md:mb-4">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
@@ -212,7 +212,7 @@ const Sidebar = () => {
             <Link
               to="/create-recipe"
               onClick={handleNavClick}
-              className="btn-primary flex items-center justify-center space-x-2 mb-4 hover-lift text-sm"
+              className="btn-primary flex items-center justify-center space-x-2 mb-3 md:mb-4 hover-lift text-sm"
             >
               <FaPlus />
               <span>Create Recipe</span>

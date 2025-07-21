@@ -26,16 +26,16 @@ const SearchBar = ({ onSearch }) => {
 
   return (
     <motion.div
-      className={`search-container w-full sm:w-[350px] md:w-[450px] h-14 flex items-center transition-all duration-300 ${
+      className={`search-container w-full max-w-[350px] md:max-w-[450px] h-12 md:h-14 flex items-center transition-all duration-300 ${
         isFocused ? 'scale-105' : ''
       }`}
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="flex items-center w-full px-4">
+      <div className="flex items-center w-full px-3 md:px-4">
         <FaSearch 
-          className="text-xl mr-3 transition-colors duration-300" 
+          className="text-lg md:text-xl mr-2 md:mr-3 transition-colors duration-300" 
           style={{ color: isFocused ? 'var(--sage-green)' : 'var(--light-green)' }}
         />
         <input
@@ -45,7 +45,7 @@ const SearchBar = ({ onSearch }) => {
           onChange={(e) => setSearchTerm(e.target.value)}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          className="flex-1 bg-transparent outline-none text-lg placeholder:text-gray-400 font-medium"
+          className="flex-1 bg-transparent outline-none text-sm md:text-lg placeholder:text-gray-400 font-medium py-3 md:py-4"
           style={{ color: 'var(--dark-text)' }}
         />
         {searchTerm && (
@@ -54,7 +54,7 @@ const SearchBar = ({ onSearch }) => {
             className="ml-2 p-1 rounded-full hover:bg-gray-100 transition-colors duration-200"
           >
             <FaTimes 
-              className="text-sm" 
+              className="text-xs md:text-sm" 
               style={{ color: 'var(--sage-green)' }}
             />
           </button>

@@ -34,12 +34,12 @@ const RecipeCategoryFilter = ({ selectedCategory, setSelectedCategory }) => {
   if (error) return <p className="text-red-500 text-center">Error loading categories</p>;
 
   return (
-    <div className="w-full overflow-x-auto custom-scrollbar">
-      <div className="flex gap-3 sm:gap-4 mb-8 px-2 sm:px-4 pb-2">
+    <div className="w-full overflow-x-auto custom-scrollbar category-scroll-mobile">
+      <div className="flex gap-2 sm:gap-3 md:gap-4 mb-4 md:mb-8 px-1 sm:px-2 md:px-4 pb-2 min-w-max">
         {data.categories.map((category, index) => (
           <motion.button
             key={category}
-            className={`category-pill flex items-center gap-2 ${
+            className={`category-pill flex items-center gap-1 md:gap-2 flex-shrink-0 ${
               selectedCategory === category ? 'active' : ''
             }`}
             onClick={() => setSelectedCategory(category)}
@@ -49,10 +49,10 @@ const RecipeCategoryFilter = ({ selectedCategory, setSelectedCategory }) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.05 }}
           >
-            <span className="text-lg">
+            <span className="text-base md:text-lg">
               {categoryIcons[category] || "🍴"}
             </span>
-            <span className="font-semibold text-sm sm:text-base">
+            <span className="font-semibold text-xs sm:text-sm md:text-base whitespace-nowrap">
               {category}
             </span>
           </motion.button>
